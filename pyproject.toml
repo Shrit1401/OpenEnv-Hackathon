@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jury_env"
+version = "0.1.0"
+description = "Jury Consultant Strategy Environment — OpenEnv hackathon submission"
+requires-python = ">=3.12"
+authors = [
+    {name = "Neura Rangers"},
+]
+dependencies = [
+    "openenv-core[core]>=0.2.1,<0.2.2",
+    "fastapi>=0.115.0",
+    "pydantic>=2.0.0",
+    "uvicorn>=0.24.0",
+    "requests>=2.31.0",
+    "openai>=1.0.0",
+]
+
+[project.scripts]
+server = "jury_env.server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["jury_env", "jury_env.server"]
+package-dir = { "jury_env" = ".", "jury_env.server" = "server" }
+
+[tool.uv.sources]
+openenv = { path = "../../module4/OpenEnv", editable = true }
