@@ -1,3 +1,12 @@
+---
+title: Scaler
+emoji: 🏆
+colorFrom: red
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Jury Consultant Environment
 
 **OpenEnv hackathon submission — Nuera Rangers**  
