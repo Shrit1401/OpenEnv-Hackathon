@@ -23,6 +23,10 @@ RUN uv pip install --system \
     "requests>=2.31.0" \
     "openai>=1.0.0"
 
+# Build frontend assets
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
+RUN cd /app/env/frontend && npm ci && npm run build
+
 # Final stage
 FROM ${BASE_IMAGE}
 
@@ -34,6 +38,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy source
 COPY . /app/env
+# Copy frontend dist built in builder
+COPY --from=builder /app/env/frontend/dist /app/env/frontend/dist
 
 WORKDIR /app/env
 

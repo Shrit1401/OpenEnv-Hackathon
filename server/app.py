@@ -19,10 +19,14 @@ import time
 from uuid import uuid4
 from typing import Any, Dict, Optional
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi import Request
 from fastapi.responses import Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
@@ -87,6 +91,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets")
 
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next) -> Response:
@@ -203,6 +211,25 @@ def valid_actions() -> Dict[str, Any]:
     """Return actions valid in the current phase."""
     phase = _env._phase
     return {"phase": phase, "valid_actions": _PHASE_ACTIONS.get(phase, [])}
+
+
+@app.get("/")
+def index() -> Response:
+    index_file = _FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return {"status": "healthy", "message": "Frontend build not found"}
+
+
+@app.get("/{path:path}")
+def spa_fallback(path: str) -> Response:
+    # Keep API/docs routes untouched; serve SPA for client-side paths.
+    if path.startswith(("health", "reset", "step", "state", "schema", "valid_actions", "docs", "openapi.json", "redoc")):
+        raise HTTPException(status_code=404, detail="Not Found")
+    index_file = _FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 # ---------------------------------------------------------------------------
