@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSimulationStore } from "@/store/simulation";
-import { tAction, template } from "@/i18n/translate";
+import { dictionary, tAction, tMood, tPhase, template } from "@/i18n/translate";
 import type { AppLanguage } from "@/store/simulation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -19,19 +19,76 @@ const PHASES = [
   "closing",
   "verdict",
 ] as const;
-const PHASE_LABELS: Record<string, string> = {
-  voir_dire: "Voir Dire",
-  witness_exam: "Opening",
-  cross_examination: "Testimony",
-  closing: "Closing",
-  verdict: "Verdict",
+const TASK_LABELS: Record<AppLanguage, Record<string, string>> = {
+  en: {
+    reasonable_doubt: "State v. Mercer",
+    poisoned_panel: "State v. Aldridge",
+    the_impossible_case: "State v. Harmon",
+  },
+  hi: {
+    reasonable_doubt: "राज्य बनाम मर्सर",
+    poisoned_panel: "राज्य बनाम एल्ड्रिज",
+    the_impossible_case: "राज्य बनाम हार्मन",
+  },
+  kn: {
+    reasonable_doubt: "ರಾಜ್ಯ ವಿರುದ್ಧ ಮರ್ಸರ್",
+    poisoned_panel: "ರಾಜ್ಯ ವಿರುದ್ಧ ಆಲ್ಡ್ರಿಜ್",
+    the_impossible_case: "ರಾಜ್ಯ ವಿರುದ್ಧ ಹಾರ್ಮನ್",
+  },
+  te: {
+    reasonable_doubt: "రాష్ట్రం వర్సెస్ మర్సర్",
+    poisoned_panel: "రాష్ట్రం వర్సెస్ ఆల్డ్రిడ్జ్",
+    the_impossible_case: "రాష్ట్రం వర్సెస్ హార్మన్",
+  },
 };
 
-const MOOD_LABEL: Record<string, string> = {
-  receptive: "Leaning Not Guilty",
-  hostile: "Guilty",
-  neutral: "On the Fence",
-  disengaged: "Undecided",
+const TASK_DIFFICULTY: Record<AppLanguage, Record<string, string>> = {
+  en: {
+    reasonable_doubt: "Level 1 · Easy",
+    poisoned_panel: "Level 2 · Medium",
+    the_impossible_case: "Level 3 · Hard",
+  },
+  hi: {
+    reasonable_doubt: "लेवल 1 · आसान",
+    poisoned_panel: "लेवल 2 · मध्यम",
+    the_impossible_case: "लेवल 3 · कठिन",
+  },
+  kn: {
+    reasonable_doubt: "ಹಂತ 1 · ಸುಲಭ",
+    poisoned_panel: "ಹಂತ 2 · ಮಧ್ಯಮ",
+    the_impossible_case: "ಹಂತ 3 · ಕಠಿಣ",
+  },
+  te: {
+    reasonable_doubt: "లెవల్ 1 · సులభం",
+    poisoned_panel: "లెవల్ 2 · మధ్యస్థం",
+    the_impossible_case: "లెవల్ 3 · కష్టం",
+  },
+};
+
+const ABOUT_CARD: Record<AppLanguage, { title: string; body: string }> = {
+  en: {
+    title: "Welcome to Jury Consultant",
+    body: "This simulator helps you test defense strategy under uncertainty. Reduce conviction pressure and improve final score through phase-aware actions.",
+  },
+  hi: {
+    title: "जूरी कंसल्टेंट में स्वागत है",
+    body: "यह सिम्युलेटर अनिश्चित परिस्थितियों में रक्षा रणनीति की जांच करता है। चरण के अनुसार सही कदम लेकर दोषसिद्धि दबाव कम करें और अंतिम स्कोर सुधारें।",
+  },
+  kn: {
+    title: "ಜೂರಿ ಕನ್ಸಲ್ಟೆಂಟ್‌ಗೆ ಸ್ವಾಗತ",
+    body: "ಈ ಸಿಮ್ಯುಲೇಟರ್ ಅನಿಶ್ಚಿತ ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ರಕ್ಷಣಾ ತಂತ್ರವನ್ನು ಪರೀಕ್ಷಿಸಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ಹಂತಕ್ಕೆ ತಕ್ಕ ಕ್ರಮಗಳಿಂದ ದೋಷದ ಒತ್ತಡ ಕಡಿಮೆ ಮಾಡಿ ಮತ್ತು ಅಂತಿಮ ಸ್ಕೋರ್ ಹೆಚ್ಚಿಸಿ.",
+  },
+  te: {
+    title: "జ్యూరీ కన్సల్టెంట్‌కు స్వాగతం",
+    body: "ఈ సిమ్యులేటర్ అనిశ్చిత పరిస్థితుల్లో రక్షణ వ్యూహాన్ని పరీక్షిస్తుంది. దశకు సరిపోయే చర్యలతో దోష ఒత్తిడిని తగ్గించి తుది స్కోర్‌ను మెరుగుపరచండి.",
+  },
+};
+
+const CLOSE_LABEL: Record<AppLanguage, string> = {
+  en: "Close",
+  hi: "बंद करें",
+  kn: "ಮುಚ್ಚು",
+  te: "మూసివేయి",
 };
 
 const MOOD_BG: Record<string, string> = {
@@ -105,6 +162,11 @@ export default function App() {
     setVerdictRevealIndex,
   } = store;
 
+  const dict = dictionary(language);
+  const ui = dict.ui;
+  const about = ABOUT_CARD[language];
+  const localizedCases = TASK_LABELS[language];
+  const localizedDifficulty = TASK_DIFFICULTY[language];
   const sessionTime = useSessionTimer(isAutoplay || isRunning);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -165,25 +227,25 @@ export default function App() {
   const verdictLabel = useMemo(() => {
     if (!observation) return "";
     if (observation.conviction_pressure < 0.4)
-      return "Reasonable Doubt Established";
-    if (observation.conviction_pressure > 0.65) return "Conviction Secured";
-    return "Hung Jury";
-  }, [observation]);
+      return dict.verdict.established;
+    if (observation.conviction_pressure > 0.65) return dict.verdict.secured;
+    return dict.verdict.hung;
+  }, [dict.verdict, observation]);
 
   const pressure = observation?.conviction_pressure ?? 0;
   const pct = Math.round(pressure * 100);
   const pressureTag =
     pressure < 0.4
-      ? "NOT GUILTY"
+      ? dict.verdict.notGuilty.toUpperCase()
       : pressure > 0.65
-        ? "LEANING GUILTY"
-        : "ON THE FENCE";
+        ? dict.verdict.guilty.toUpperCase()
+        : tMood(language, "neutral").toUpperCase();
   const pressureTagBg =
     pressure < 0.4 ? "#15803d" : pressure > 0.65 ? "#dc2626" : "#a16207";
 
   const phase = observation?.phase ?? "voir_dire";
   const phaseIdx = PHASES.indexOf(phase as (typeof PHASES)[number]);
-  const phaseLabel = PHASE_LABELS[phase] ?? phase.replace("_", " ");
+  const phaseLabel = tPhase(language, phase);
 
   const formattedTranscript = useMemo(
     () =>
@@ -221,15 +283,16 @@ export default function App() {
           ╚═══════════════════════════════════╝ */}
       <header
         style={{
-          height: 58,
+          minHeight: 74,
           flexShrink: 0,
           zIndex: 30,
           display: "flex",
           alignItems: "center",
-          padding: "0 20px",
+          flexWrap: "wrap",
+          rowGap: 6,
+          padding: "8px 14px",
           background: "rgba(5,5,5,0.97)",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
-          position: "relative",
         }}
       >
         {/* Logo + title */}
@@ -259,7 +322,7 @@ export default function App() {
                 textTransform: "uppercase",
               }}
             >
-              Courtroom Simulation
+              {ui.title}
             </div>
             <div
               style={{
@@ -268,23 +331,21 @@ export default function App() {
                 marginTop: 1,
               }}
             >
-              {caseName} • {observation ? "Session Active" : "Ready"}
+              {caseName} • {observation ? ui.running : ui.idle}
             </div>
           </div>
         </div>
 
-        {/* Phase pill — absolute center */}
+        {/* Phase pill */}
         <div
           style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
+            marginLeft: 10,
             background: "rgba(0,0,0,0.6)",
             border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 99,
-            padding: "5px 24px",
+            padding: "4px 12px",
             textAlign: "center",
-            pointerEvents: "none",
+            flexShrink: 0,
           }}
         >
           <div
@@ -295,19 +356,10 @@ export default function App() {
               textTransform: "uppercase",
             }}
           >
-            PHASE:{" "}
+            {ui.phase}:{" "}
             <span style={{ color: "#fff", fontWeight: 700 }}>
               {phaseLabel.toUpperCase()}
             </span>
-          </div>
-          <div
-            style={{
-              fontSize: 9,
-              color: "rgba(255,255,255,0.25)",
-              marginTop: 1,
-            }}
-          >
-            Jury Selection &amp; Opening Statements
           </div>
         </div>
 
@@ -318,31 +370,52 @@ export default function App() {
             display: "flex",
             alignItems: "center",
             gap: 6,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
           }}
         >
-          <select
-            value={selectedTask}
-            onChange={(e) =>
-              setTask(
-                e.target.value,
-                CASES[e.target.value] ?? CASES.reasonable_doubt,
-              )
-            }
+          <div
             style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 6,
-              color: "rgba(255,255,255,0.65)",
-              padding: "4px 9px",
-              fontSize: 11,
-              outline: "none",
-              cursor: "pointer",
+              display: "flex",
+              alignItems: "stretch",
+              gap: 6,
+              padding: 4,
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <option value="reasonable_doubt">State v. Mercer</option>
-            <option value="poisoned_panel">State v. Aldridge</option>
-            <option value="the_impossible_case">State v. Harmon</option>
-          </select>
+            {(["reasonable_doubt", "poisoned_panel", "the_impossible_case"] as const).map((taskKey) => {
+              const active = selectedTask === taskKey;
+              return (
+                <button
+                  key={taskKey}
+                  onClick={() => setTask(taskKey, CASES[taskKey])}
+                  style={{
+                    minWidth: 128,
+                    textAlign: "left",
+                    padding: "5px 8px",
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    border: active
+                      ? "1px solid rgba(34,197,94,0.8)"
+                      : "1px solid rgba(255,255,255,0.08)",
+                    background: active
+                      ? "rgba(34,197,94,0.12)"
+                      : "rgba(255,255,255,0.03)",
+                    color: active ? "#ffffff" : "rgba(255,255,255,0.78)",
+                  }}
+                >
+                  <div style={{ fontSize: 9, color: active ? "#86efac" : "rgba(255,255,255,0.55)" }}>
+                    {localizedDifficulty[taskKey]}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>
+                    {localizedCases[taskKey]}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
           {(["en", "hi", "kn", "te"] as AppLanguage[]).map((lang) => {
             const on = language === lang;
@@ -361,7 +434,7 @@ export default function App() {
                     ? "1.5px solid rgba(234,179,8,0.42)"
                     : "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 99,
-                  padding: "4px 11px",
+                  padding: "3px 10px",
                   color: on ? "#eab308" : "rgba(255,255,255,0.48)",
                   fontSize: 11,
                   cursor: "pointer",
@@ -397,7 +470,7 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              API {health === "healthy" ? "Online" : "Offline"}
+              API {health === "healthy" ? ui.online : ui.offline}
             </span>
           </div>
         </div>
@@ -437,31 +510,22 @@ export default function App() {
             style={{
               position: "absolute",
               top: 14,
-              right: 14,
+              left: 14,
+              maxWidth: 300,
               zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
               background: "rgba(0,0,0,0.52)",
               backdropFilter: "blur(8px)",
               border: "1px solid rgba(255,255,255,0.09)",
-              borderRadius: 99,
-              padding: "5px 13px",
-              fontSize: 11,
-              color: "rgba(255,255,255,0.78)",
+              borderRadius: 10,
+              padding: "8px 10px",
             }}
           >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#22c55e",
-                boxShadow: "0 0 6px #22c55e",
-                display: "inline-block",
-              }}
-            />
-            Courtroom is Live
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#fcd34d", marginBottom: 4 }}>
+              {about.title}
+            </div>
+            <div style={{ fontSize: 10, lineHeight: 1.4, color: "rgba(255,255,255,0.8)" }}>
+              {about.body}
+            </div>
           </div>
 
           {/* ── Defense card ── */}
@@ -497,7 +561,7 @@ export default function App() {
                   textTransform: "uppercase",
                 }}
               >
-                Defense
+                {ui.defenseTable}
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
@@ -510,7 +574,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              For the Accused
+              Defense
             </div>
             {observation && (
               <div
@@ -567,7 +631,7 @@ export default function App() {
                   textTransform: "uppercase",
                 }}
               >
-                Prosecution
+                {ui.prosecutionTable}
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
@@ -580,7 +644,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              For the State
+              Prosecution
             </div>
           </div>
 
@@ -610,7 +674,7 @@ export default function App() {
                 marginBottom: 8,
               }}
             >
-              Conviction Pressure <span style={{ opacity: 0.4 }}>ⓘ</span>
+              {ui.pressure} <span style={{ opacity: 0.4 }}>ⓘ</span>
             </div>
             <div
               style={{
@@ -690,8 +754,8 @@ export default function App() {
                 color: "rgba(255,255,255,0.26)",
               }}
             >
-              <span>Not Guilty</span>
-              <span>Beyond Reasonable Doubt</span>
+              <span>{dict.verdict.notGuilty}</span>
+              <span>{dict.verdict.secured}</span>
             </div>
           </div>
 
@@ -733,7 +797,7 @@ export default function App() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {MOOD_LABEL[mood] ?? mood}
+                      {tMood(language, mood)}
                     </motion.span>
                   );
                 })}
@@ -771,7 +835,7 @@ export default function App() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {MOOD_LABEL[mood] ?? mood}
+                      {tMood(language, mood)}
                     </motion.span>
                   );
                 })}
@@ -779,7 +843,7 @@ export default function App() {
             </>
           )}
 
-          {/* ── Bottom rail: Volume · Timeline · Session Time ── */}
+          {/* ── Bottom rail: Timeline + Session Time ── */}
           <div
             style={{
               position: "absolute",
@@ -794,75 +858,9 @@ export default function App() {
               display: "flex",
               alignItems: "center",
               padding: "0 22px",
-              gap: 22,
+              gap: 12,
             }}
           >
-            {/* Volume */}
-            <div style={{ flexShrink: 0 }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: "rgba(255,255,255,0.28)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: 5,
-                }}
-              >
-                Volume
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontSize: 11, opacity: 0.45 }}>🔈</span>
-                <div
-                  style={{
-                    width: 50,
-                    height: 3,
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: 2,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40%",
-                      height: "100%",
-                      background: "#eab308",
-                      borderRadius: 2,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Courtroom Audio */}
-            <div style={{ flexShrink: 0 }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: "rgba(255,255,255,0.28)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: 5,
-                }}
-              >
-                Courtroom Audio
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                    display: "inline-block",
-                  }}
-                />
-                <span
-                  style={{ fontSize: 10, color: "#22c55e", fontWeight: 700 }}
-                >
-                  LIVE
-                </span>
-              </div>
-            </div>
-
             {/* Phase timeline */}
             <div style={{ flex: 1, position: "relative", paddingBottom: 2 }}>
               {/* track */}
@@ -944,7 +942,7 @@ export default function App() {
                           fontWeight: active ? 700 : 400,
                         }}
                       >
-                        {PHASE_LABELS[p]}
+                        {tPhase(language, p)}
                       </span>
                     </div>
                   );
@@ -963,7 +961,7 @@ export default function App() {
                   marginBottom: 3,
                 }}
               >
-                ⏱ Session Time
+                ⏱ {ui.runStatus}
               </div>
               <div
                 style={{
@@ -1023,7 +1021,7 @@ export default function App() {
                   textTransform: "uppercase",
                 }}
               >
-                Live Transcript
+                {ui.transcript}
               </span>
             </div>
           </div>
@@ -1057,7 +1055,7 @@ export default function App() {
                   textAlign: "center",
                 }}
               >
-                Reset simulation to begin
+                {ui.noEvents}
               </div>
             )}
             <AnimatePresence initial={false}>
@@ -1136,7 +1134,7 @@ export default function App() {
                   display: "inline-block",
                 }}
               />
-              Auto-Transcribing in {LANG_NAMES[language]}
+              {ui.language}: {LANG_NAMES[language]}
             </div>
           </div>
 
@@ -1157,7 +1155,7 @@ export default function App() {
                 marginBottom: 8,
               }}
             >
-              Quick Actions
+              {ui.lastAction}
             </div>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <button
@@ -1183,7 +1181,7 @@ export default function App() {
                   gap: 5,
                 }}
               >
-                {isAutoplay ? "⏸ Pause" : "▶ Play"}
+                {isAutoplay ? `⏸ ${ui.pause}` : `▶ ${ui.autoplay}`}
               </button>
               <button
                 onClick={() => setVerdictOpen(true)}
@@ -1203,7 +1201,7 @@ export default function App() {
                   gap: 5,
                 }}
               >
-                ⚖️ Reveal Verdict
+                ⚖️ {ui.revealVerdict}
               </button>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -1221,7 +1219,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                ↺ Reset
+                ↺ {ui.reset}
               </button>
               <button
                 onClick={() => void step()}
@@ -1237,7 +1235,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                ⏭ Step
+                ⏭ {ui.step}
               </button>
             </div>
           </div>
@@ -1285,7 +1283,7 @@ export default function App() {
                   marginBottom: 4,
                 }}
               >
-                ⚖️ Final Verdict
+                ⚖️ {ui.finalVerdict}
               </div>
               <div
                 style={{
@@ -1307,10 +1305,10 @@ export default function App() {
               >
                 {[
                   [
-                    "Score",
+                    ui.score,
                     `${Math.round((observation?.task_score ?? 0) * 100)}%`,
                   ],
-                  ["Pressure", `${pct}%`],
+                  [ui.pressure, `${pct}%`],
                 ].map(([label, val]) => (
                   <div
                     key={label}
@@ -1380,7 +1378,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Close
+                {CLOSE_LABEL[language]}
               </button>
             </motion.div>
           </motion.div>
