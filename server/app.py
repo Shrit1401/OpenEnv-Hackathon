@@ -14,19 +14,11 @@ Usage:
 
 from __future__ import annotations
 
-import logging
-import time
-from uuid import uuid4
+import os
 from typing import Any, Dict, Optional
 
-from pathlib import Path
-
 from fastapi import FastAPI, HTTPException
-from fastapi import Request
-from fastapi.responses import Response
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
@@ -54,12 +46,10 @@ except ImportError:
 
 try:
     from ..models import JuryAction, JuryObservation
-    from .jury_environment import JuryEnvironment
-    from .jury_environment import _PHASE_ACTIONS
+    from .jury_environment import JuryEnvironment, _PHASE_ACTIONS
 except ImportError:
     from models import JuryAction, JuryObservation
-    from server.jury_environment import JuryEnvironment
-    from server.jury_environment import _PHASE_ACTIONS
+    from server.jury_environment import JuryEnvironment, _PHASE_ACTIONS
 
 
 # ---------------------------------------------------------------------------
@@ -67,12 +57,6 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _env = JuryEnvironment()
-logger = logging.getLogger("jury_env.api")
-if not logger.handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    )
 
 app = FastAPI(
     title="Jury Consultant Environment",
@@ -91,38 +75,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-if _FRONTEND_DIST.exists():
-    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets")
-
-@app.middleware("http")
-async def request_logging_middleware(request: Request, call_next) -> Response:
-    request_id = str(uuid4())[:8]
-    started = time.perf_counter()
-    try:
-        response = await call_next(request)
-        elapsed_ms = (time.perf_counter() - started) * 1000
-        logger.info(
-            "request_id=%s method=%s path=%s status=%s elapsed_ms=%.2f",
-            request_id,
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed_ms,
-        )
-        response.headers["X-Request-ID"] = request_id
-        return response
-    except Exception:
-        elapsed_ms = (time.perf_counter() - started) * 1000
-        logger.exception(
-            "request_id=%s method=%s path=%s status=500 elapsed_ms=%.2f",
-            request_id,
-            request.method,
-            request.url.path,
-            elapsed_ms,
-        )
-        raise
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +100,8 @@ def reset(request: ResetRequest = None) -> ResetResponse:
         # task_id comes through as extra fields (ResetRequest uses extra="allow")
         if "task_id" in raw:
             kwargs["task_id"] = raw["task_id"]
+    if "task_id" not in kwargs and os.environ.get("TASK_ID"):
+        kwargs["task_id"] = os.environ["TASK_ID"]
 
     obs = _env.reset(**kwargs)
     serialized = serialize_observation(obs)
@@ -166,6 +120,15 @@ def step(request: StepRequest) -> StepResponse:
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    all_actions = {a for actions in _PHASE_ACTIONS.values() for a in actions}
+    if action.action_type not in all_actions:
+        raise HTTPException(status_code=422, detail=f"Unknown action type: {action.action_type}")
+    if action.action_type not in _env.valid_actions():
+        raise HTTPException(
+            status_code=422,
+            detail=f"Action '{action.action_type}' not allowed in phase '{_env._phase}'",
+        )
+
     obs = _env.step(action)
     serialized = serialize_observation(obs)
     return StepResponse(
@@ -177,24 +140,14 @@ def step(request: StepRequest) -> StepResponse:
 
 @app.get("/state")
 def state() -> Dict[str, Any]:
-    """
-    Return current state plus visible observation.
+    """Return current visible state only."""
+    return _env.visible_state()
 
-    Backward compatible keys:
-      - episode_id
-      - step_count
-    """
-    state_data = _env.state.model_dump()
-    obs = _env.current_observation()
-    serialized = serialize_observation(obs)
-    return {
-        **state_data,
-        "task_id": obs.task_id,
-        "phase": obs.phase,
-        "done": obs.done,
-        "observation": serialized["observation"],
-        "valid_actions": obs.valid_actions,
-    }
+
+@app.get("/grade")
+def grade() -> Dict[str, float]:
+    """Return deterministic normalized score in [0.0, 1.0]."""
+    return {"score": _env.grade()}
 
 
 @app.get("/schema")
@@ -210,26 +163,7 @@ def schema() -> Dict[str, Any]:
 def valid_actions() -> Dict[str, Any]:
     """Return actions valid in the current phase."""
     phase = _env._phase
-    return {"phase": phase, "valid_actions": _PHASE_ACTIONS.get(phase, [])}
-
-
-@app.get("/")
-def index() -> Response:
-    index_file = _FRONTEND_DIST / "index.html"
-    if index_file.exists():
-        return FileResponse(index_file)
-    return {"status": "healthy", "message": "Frontend build not found"}
-
-
-@app.get("/{path:path}")
-def spa_fallback(path: str) -> Response:
-    # Keep API/docs routes untouched; serve SPA for client-side paths.
-    if path.startswith(("health", "reset", "step", "state", "schema", "valid_actions", "docs", "openapi.json", "redoc")):
-        raise HTTPException(status_code=404, detail="Not Found")
-    index_file = _FRONTEND_DIST / "index.html"
-    if index_file.exists():
-        return FileResponse(index_file)
-    raise HTTPException(status_code=404, detail="Not Found")
+    return {"phase": phase, "valid_actions": _env.valid_actions()}
 
 
 # ---------------------------------------------------------------------------
@@ -237,14 +171,18 @@ def spa_fallback(path: str) -> Response:
 # ---------------------------------------------------------------------------
 
 
-def main(host: str = "0.0.0.0", port: int = 7860) -> None:
+def run(host: str = "0.0.0.0", port: int = 7860) -> None:
     import uvicorn
     uvicorn.run(app, host=host, port=port)
 
 
-if __name__ == "__main__":
+def main() -> None:
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=7860)
     args = parser.parse_args()
-    main(port=args.port)
+    run(port=args.port)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,63 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSimulationStore } from "@/store/simulation";
-import { dictionary, tAction, tMood, tPhase } from "@/i18n/translate";
-import type { AppLanguage, TranscriptEntry } from "@/store/simulation";
-import type { JuryObservation } from "@/lib/api";
+import { tAction, template } from "@/i18n/translate";
+import type { AppLanguage } from "@/store/simulation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CASES: Record<string, string> = {
-  reasonable_doubt: "State v. Callahan",
-  poisoned_panel: "State v. Whitmore",
-  the_impossible_case: "State v. Blackwood",
+  reasonable_doubt: "State v. Mercer",
+  poisoned_panel: "State v. Aldridge",
+  the_impossible_case: "State v. Harmon",
 };
-const TASK_META: Record<
-  string,
-  { level: string; title: string; objective: string; accent: string }
-> = {
-  reasonable_doubt: {
-    level: "Level 1 · Easy",
-    title: "Reasonable Doubt",
-    objective: "Lower average conviction below 35%.",
-    accent: "#22c55e",
-  },
-  poisoned_panel: {
-    level: "Level 2 · Medium",
-    title: "Poisoned Panel",
-    objective: "Break the hostile cluster before it spreads.",
-    accent: "#f59e0b",
-  },
-  the_impossible_case: {
-    level: "Level 3 · Hard",
-    title: "The Impossible Case",
-    objective: "Force a split jury with multiple holdouts.",
-    accent: "#ef4444",
-  },
-};
-const TASK_META_I18N: Record<AppLanguage, Record<string, { level: string; title: string; objective: string }>> = {
-  en: {
-    reasonable_doubt: { level: "Level 1 · Easy", title: "Reasonable Doubt", objective: "Lower average conviction below 35%." },
-    poisoned_panel: { level: "Level 2 · Medium", title: "Poisoned Panel", objective: "Break the hostile cluster before it spreads." },
-    the_impossible_case: { level: "Level 3 · Hard", title: "The Impossible Case", objective: "Force a split jury with multiple holdouts." },
-  },
-  hi: {
-    reasonable_doubt: { level: "लेवल 1 · आसान", title: "उचित संदेह", objective: "औसत दोषसिद्धि 35% से नीचे लाएं।" },
-    poisoned_panel: { level: "लेवल 2 · मध्यम", title: "विषाक्त पैनल", objective: "शत्रुतापूर्ण समूह को टूटने पर मजबूर करें।" },
-    the_impossible_case: { level: "लेवल 3 · कठिन", title: "असंभव केस", objective: "जूरी में स्पष्ट विभाजन बनाएं।" },
-  },
-  kn: {
-    reasonable_doubt: { level: "ಹಂತ 1 · ಸುಲಭ", title: "ಸಮಂಜಸ ಸಂದೇಹ", objective: "ಸರಾಸರಿ ದೋಷದ ಒತ್ತಡವನ್ನು 35% ಕ್ಕಿಂತ ಕಡಿಮೆ ಮಾಡಿ." },
-    poisoned_panel: { level: "ಹಂತ 2 · ಮಧ್ಯಮ", title: "ವಿಷಪೂರಿತ ಪ್ಯಾನಲ್", objective: "ವಿರೋಧಿ ಗುಂಪನ್ನು ಮುರಿಯಿರಿ." },
-    the_impossible_case: { level: "ಹಂತ 3 · ಕಠಿಣ", title: "ಅಸಾಧ್ಯ ಕೇಸ್", objective: "ಜೂರಿಯಲ್ಲಿ ಸ್ಪಷ್ಟ ವಿಭಜನೆ ತರಿರಿ." },
-  },
-  te: {
-    reasonable_doubt: { level: "లెవల్ 1 · సులభం", title: "సందేహ స్థాయి", objective: "సగటు దోష ఒత్తిడిని 35% కంటే తక్కువ చేయండి." },
-    poisoned_panel: { level: "లెవల్ 2 · మధ్యస్థం", title: "విషపూరిత ప్యానెల్", objective: "విరోధక క్లస్టర్‌ను చెదరగొట్టండి." },
-    the_impossible_case: { level: "లెవల్ 3 · కష్టం", title: "అసాధ్య కేసు", objective: "జ్యూరీలో స్పష్టమైన విభజన సృష్టించండి." },
-  },
-};
-const HACKATHON_TAG = "Built for Scaler Hackathon · Nuera Rangers";
 
 const PHASES = [
   "voir_dire",
@@ -66,204 +19,19 @@ const PHASES = [
   "closing",
   "verdict",
 ] as const;
-const PHASE_DESCRIPTIONS: Record<AppLanguage, Record<string, string>> = {
-  en: {
-    voir_dire: "Jury selection and bias probing",
-    witness_exam: "Defense presents witnesses and evidence",
-    cross_examination: "Pressure-test prosecution testimony",
-    closing: "Final persuasion and reasonable doubt framing",
-    verdict: "Jury deliberation and final outcome",
-  },
-  hi: {
-    voir_dire: "जूरी चयन और पक्षपात जांच",
-    witness_exam: "रक्षा पक्ष गवाह और साक्ष्य पेश करता है",
-    cross_examination: "अभियोजन गवाही की जिरह",
-    closing: "अंतिम बहस और उचित संदेह पर जोर",
-    verdict: "जूरी विचार-विमर्श और अंतिम निर्णय",
-  },
-  kn: {
-    voir_dire: "ಜೂರಿ ಆಯ್ಕೆ ಮತ್ತು ಪಕ್ಷಪಾತ ಪರಿಶೀಲನೆ",
-    witness_exam: "ರಕ್ಷಣಾ ಪಕ್ಷ ಸಾಕ್ಷಿ ಮತ್ತು ಸಾಕ್ಷ್ಯ ಮಂಡಿಸುತ್ತದೆ",
-    cross_examination: "ಅಭಿಯೋಗ ಸಾಕ್ಷ್ಯಕ್ಕೆ ಪ್ರತಿಪ್ರಶ್ನೆ",
-    closing: "ಅಂತಿಮ ವಾದ ಮತ್ತು ಸಮಂಜಸ ಸಂದೇಹ ಒತ್ತಿಹೇಳಿಕೆ",
-    verdict: "ಜೂರಿ ಚರ್ಚೆ ಮತ್ತು ಅಂತಿಮ ತೀರ್ಪು",
-  },
-  te: {
-    voir_dire: "జ్యూరీ ఎంపిక మరియు పక్షపాతం పరిశీలన",
-    witness_exam: "రక్షణ పక్షం సాక్షులు, ఆధారాలు సమర్పిస్తుంది",
-    cross_examination: "అభియోగ సాక్ష్యాలపై ప్రతిప్రశ్న",
-    closing: "తుది వాదన మరియు సందేహ అంశం",
-    verdict: "జ్యూరీ చర్చ మరియు తుది తీర్పు",
-  },
+const PHASE_LABELS: Record<string, string> = {
+  voir_dire: "Voir Dire",
+  witness_exam: "Opening",
+  cross_examination: "Testimony",
+  closing: "Closing",
+  verdict: "Verdict",
 };
 
-const UI_TEXT: Record<
-  AppLanguage,
-  {
-    sessionActive: string;
-    ready: string;
-    phaseLabel: string;
-    courtroomProceeding: string;
-    courtroomLive: string;
-    welcomeTitle: string;
-    onboardingBody: string;
-    active: string;
-    defense: string;
-    prosecution: string;
-    forAccused: string;
-    forState: string;
-    convictionPressure: string;
-    pressureNotGuilty: string;
-    pressureGuilty: string;
-    pressureFence: string;
-    juryUnit: string;
-    courtroomAudio: string;
-    live: string;
-    autoTranscribing: string;
-    quickActions: string;
-    play: string;
-    revealVerdict: string;
-    reset: string;
-    step: string;
-    finalVerdict: string;
-    noSimulationData: string;
-    score: string;
-    pressure: string;
-    resetToBegin: string;
-  }
-> = {
-  en: {
-    sessionActive: "Session Active",
-    ready: "Ready",
-    phaseLabel: "Phase",
-    courtroomProceeding: "Courtroom proceeding",
-    courtroomLive: "Courtroom is Live",
-    welcomeTitle: "WELCOME TO JURY CONSULTANT",
-    onboardingBody:
-      "This app simulates courtroom strategy. You are the defense consultant: choose actions that reduce conviction pressure and improve the final verdict. Select a level above, then use Reset, Play, or Step.",
-    active: "Active",
-    defense: "Defense",
-    prosecution: "Prosecution",
-    forAccused: "For the Accused",
-    forState: "For the State",
-    convictionPressure: "Conviction Pressure",
-    pressureNotGuilty: "NOT GUILTY",
-    pressureGuilty: "LEANING GUILTY",
-    pressureFence: "ON THE FENCE",
-    juryUnit: "Jury Unit",
-    courtroomAudio: "Courtroom Audio",
-    live: "LIVE",
-    autoTranscribing: "Auto-Transcribing in",
-    quickActions: "Quick Actions",
-    play: "Play",
-    revealVerdict: "Reveal Verdict",
-    reset: "Reset",
-    step: "Step",
-    finalVerdict: "Final Verdict",
-    noSimulationData: "No simulation data yet",
-    score: "Score",
-    pressure: "Pressure",
-    resetToBegin: "Reset simulation to begin",
-  },
-  hi: {
-    sessionActive: "सेशन चालू",
-    ready: "तैयार",
-    phaseLabel: "चरण",
-    courtroomProceeding: "कोर्ट कार्यवाही",
-    courtroomLive: "कोर्टरूम लाइव है",
-    welcomeTitle: "जूरी कंसल्टेंट में स्वागत है",
-    onboardingBody:
-      "यह ऐप कोर्टरूम रणनीति दिखाता है। आप रक्षा सलाहकार हैं: ऐसे एक्शन चुनें जो दोषसिद्धि दबाव घटाएं और अंतिम निर्णय बेहतर करें। ऊपर लेवल चुनें, फिर Reset, Play या Step इस्तेमाल करें।",
-    active: "सक्रिय",
-    defense: "रक्षा पक्ष",
-    prosecution: "अभियोजन",
-    forAccused: "आरोपी पक्ष हेतु",
-    forState: "राज्य की ओर से",
-    convictionPressure: "दोषसिद्धि दबाव",
-    pressureNotGuilty: "निर्दोष की ओर",
-    pressureGuilty: "दोषी की ओर",
-    pressureFence: "अनिर्णीत",
-    juryUnit: "जूरी यूनिट",
-    courtroomAudio: "कोर्ट ऑडियो",
-    live: "लाइव",
-    autoTranscribing: "ऑटो-ट्रांसक्राइब",
-    quickActions: "त्वरित एक्शन",
-    play: "चलाएं",
-    revealVerdict: "निर्णय दिखाएं",
-    reset: "रीसेट",
-    step: "स्टेप",
-    finalVerdict: "अंतिम निर्णय",
-    noSimulationData: "अभी सिमुलेशन डेटा नहीं",
-    score: "स्कोर",
-    pressure: "दबाव",
-    resetToBegin: "शुरू करने के लिए रीसेट करें",
-  },
-  kn: {
-    sessionActive: "ಸೆಷನ್ ಸಕ್ರಿಯ",
-    ready: "ಸಿದ್ಧ",
-    phaseLabel: "ಹಂತ",
-    courtroomProceeding: "ನ್ಯಾಯಾಲಯ ಪ್ರಕ್ರಿಯೆ",
-    courtroomLive: "ಕೋರ್ಟ್ ಲೈವ್",
-    welcomeTitle: "ಜೂರಿ ಕನ್‌ಸಲ್ಟೆಂಟ್‌ಗೆ ಸ್ವಾಗತ",
-    onboardingBody:
-      "ಈ ಆಪ್ ನ್ಯಾಯಾಲಯ ತಂತ್ರವನ್ನು ತೋರಿಸುತ್ತದೆ. ನೀವು ರಕ್ಷಣಾ ಸಲಹೆಗಾರರು: ದೋಷದ ಒತ್ತಡ ಕಡಿಮೆ ಮಾಡುವ ಕ್ರಮಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು ಅಂತಿಮ ತೀರ್ಪನ್ನು ಉತ್ತಮಗೊಳಿಸಿ. ಮೇಲೆ ಲೆವೆಲ್ ಆಯ್ಕೆ ಮಾಡಿ, ನಂತರ Reset, Play ಅಥವಾ Step ಬಳಸಿ.",
-    active: "ಸಕ್ರಿಯ",
-    defense: "ರಕ್ಷಣಾ ಪಕ್ಷ",
-    prosecution: "ಅಭಿಯೋಗ",
-    forAccused: "ಆರೋಪಿತ ಪರ",
-    forState: "ರಾಜ್ಯದ ಪರ",
-    convictionPressure: "ದೋಷದ ಒತ್ತಡ",
-    pressureNotGuilty: "ದೋಷಿಯಲ್ಲ ದಿಕ್ಕು",
-    pressureGuilty: "ದೋಷಿ ದಿಕ್ಕು",
-    pressureFence: "ಅನಿಶ್ಚಿತ",
-    juryUnit: "ಜೂರಿ ಘಟಕ",
-    courtroomAudio: "ಕೋರ್ಟ್ ಆಡಿಯೋ",
-    live: "ಲೈವ್",
-    autoTranscribing: "ಸ್ವಯಂ ಲಿಪ್ಯಂತರ",
-    quickActions: "ತ್ವರಿತ ಕ್ರಿಯೆಗಳು",
-    play: "ಚಾಲನೆ",
-    revealVerdict: "ತೀರ್ಪು ತೋರಿಸಿ",
-    reset: "ಮರುಹೊಂದಿಸಿ",
-    step: "ಹಂತ",
-    finalVerdict: "ಅಂತಿಮ ತೀರ್ಪು",
-    noSimulationData: "ಇನ್ನೂ ಸಿಮ್ಯುಲೇಶನ್ ಡೇಟಾ ಇಲ್ಲ",
-    score: "ಸ್ಕೋರ್",
-    pressure: "ಒತ್ತಡ",
-    resetToBegin: "ಆರಂಭಿಸಲು ಮರುಹೊಂದಿಸಿ",
-  },
-  te: {
-    sessionActive: "సెషన్ సక్రియం",
-    ready: "సిద్ధం",
-    phaseLabel: "దశ",
-    courtroomProceeding: "కోర్టు ప్రక్రియ",
-    courtroomLive: "కోర్ట్ లైవ్‌లో ఉంది",
-    welcomeTitle: "జ్యూరీ కన్సల్టెంట్‌కు స్వాగతం",
-    onboardingBody:
-      "ఈ యాప్ కోర్ట్‌రూమ్ వ్యూహాన్ని చూపిస్తుంది. మీరు రక్షణ సలహాదారు: దోష ఒత్తిడిని తగ్గించే చర్యలు ఎంచుకుని తుది తీర్పును మెరుగుపరచండి. పై లెవల్ ఎంచుకుని Reset, Play లేదా Step వాడండి.",
-    active: "సక్రియం",
-    defense: "రక్షణ పక్షం",
-    prosecution: "అభియోగం",
-    forAccused: "ఆరోపిత తరఫున",
-    forState: "రాష్ట్ర తరఫున",
-    convictionPressure: "దోష ఒత్తిడి",
-    pressureNotGuilty: "దోషి కాదు వైపు",
-    pressureGuilty: "దోషి వైపు",
-    pressureFence: "అనిశ్చిత",
-    juryUnit: "జ్యూరీ యూనిట్",
-    courtroomAudio: "కోర్ట్ ఆడియో",
-    live: "లైవ్",
-    autoTranscribing: "ఆటో ట్రాన్స్‌క్రైబ్",
-    quickActions: "త్వరిత చర్యలు",
-    play: "ప్లే",
-    revealVerdict: "తీర్పు చూపు",
-    reset: "రీసెట్",
-    step: "స్టెప్",
-    finalVerdict: "తుది తీర్పు",
-    noSimulationData: "ఇంకా సిమ్యులేషన్ డేటా లేదు",
-    score: "స్కోర్",
-    pressure: "ఒత్తిడి",
-    resetToBegin: "ప్రారంభానికి రీసెట్ చేయండి",
-  },
+const MOOD_LABEL: Record<string, string> = {
+  receptive: "Leaning Not Guilty",
+  hostile: "Guilty",
+  neutral: "On the Fence",
+  disengaged: "Undecided",
 };
 
 const MOOD_BG: Record<string, string> = {
@@ -290,97 +58,13 @@ const LANG_ICONS: Record<AppLanguage, string> = {
 const ROW_BACK = [0, 1, 2, 3, 4];
 const ROW_FRONT = [5, 6, 7, 8, 9, 10, 11];
 
-const LOG_SPEAKER: Record<AppLanguage, string> = {
-  en: "Court Log",
-  hi: "कोर्ट लॉग",
-  kn: "ಕೋರ್ಟ್ ಲಾಗ್",
-  te: "కోర్ట్ లాగ్",
+const SPEAKER_CYCLE = ["Judge", "Defense", "Prosecution", "Juror #4", "Judge"];
+const SPEAKER_COLOR: Record<string, string> = {
+  Judge: "#eab308",
+  Defense: "#60a5fa",
+  Prosecution: "#f87171",
+  "Juror #4": "#a78bfa",
 };
-const LOG_SPEAKER_COLOR = "#eab308";
-
-function countMood(moods: string[], mood: string): number {
-  return moods.filter((m) => m === mood).length;
-}
-
-function pressureTrendText(language: AppLanguage, delta: number): string {
-  if (language === "hi") {
-    if (delta < 0) return `दबाव ${Math.abs(delta)} अंक सुधरा`;
-    if (delta > 0) return `दबाव ${delta} अंक बढ़ा`;
-    return "दबाव स्थिर रहा";
-  }
-  if (language === "kn") {
-    if (delta < 0) return `ಒತ್ತಡ ${Math.abs(delta)} ಅಂಕ ಸುಧಾರಿಸಿದೆ`;
-    if (delta > 0) return `ಒತ್ತಡ ${delta} ಅಂಕ ಹೆಚ್ಚಾಯಿತು`;
-    return "ಒತ್ತಡ ಸ್ಥಿರವಾಗಿದೆ";
-  }
-  if (language === "te") {
-    if (delta < 0) return `ఒత్తిడి ${Math.abs(delta)} పాయింట్లు తగ్గింది`;
-    if (delta > 0) return `ఒత్తిడి ${delta} పాయింట్లు పెరిగింది`;
-    return "ఒత్తిడి స్థిరంగా ఉంది";
-  }
-  if (delta < 0) return `Pressure improved by ${Math.abs(delta)} points`;
-  if (delta > 0) return `Pressure worsened by ${delta} points`;
-  return "Pressure stayed flat";
-}
-
-function inferActionFromEvent(lastEvent: string): string {
-  const msg = lastEvent.toLowerCase();
-  if (msg.includes("bias probe")) return "probe_bias";
-  if (msg.includes("challenged and replaced")) return "challenge_juror";
-  if (msg.includes("accepts the jury panel")) return "accept_panel";
-  if (msg.includes("takes the stand")) return "call_witness";
-  if (msg.includes("gentle cross-examination")) return "gentle_cross";
-  if (msg.includes("aggressive cross-examination")) return "aggressive_cross";
-  if (msg.includes("credibility damaged")) return "impeach_witness";
-  if (msg.includes("recess called")) return "request_recess";
-  if (msg.includes("closing argument delivered")) {
-    if (msg.includes("emotional")) return "closing_emotional";
-    if (msg.includes("procedural")) return "closing_procedural";
-    return "closing_reasonable_doubt";
-  }
-  return "probe_bias";
-}
-
-function buildTranscriptEntry(
-  language: AppLanguage,
-  current: JuryObservation,
-  previous: JuryObservation | null,
-): TranscriptEntry {
-  const action = tAction(language, inferActionFromEvent(current.last_event));
-  const pressureNow = Math.round(current.conviction_pressure * 100);
-  const pressurePrev = previous
-    ? Math.round(previous.conviction_pressure * 100)
-    : pressureNow;
-  const pressureDelta = pressureNow - pressurePrev;
-
-  const hostileNow = countMood(current.juror_moods, "hostile");
-  const hostilePrev = previous ? countMood(previous.juror_moods, "hostile") : hostileNow;
-  const receptiveNow = countMood(current.juror_moods, "receptive");
-  const receptivePrev = previous ? countMood(previous.juror_moods, "receptive") : receptiveNow;
-
-  const hostileDelta = hostileNow - hostilePrev;
-  const receptiveDelta = receptiveNow - receptivePrev;
-
-  const trend = pressureTrendText(language, pressureDelta);
-  const moodShift = `hostile ${hostileNow} (${hostileDelta >= 0 ? "+" : ""}${hostileDelta}), receptive ${receptiveNow} (${receptiveDelta >= 0 ? "+" : ""}${receptiveDelta})`;
-  const phaseLine = `Phase ${current.phase.replace("_", " ")} · score ${Math.round(current.task_score * 100)}%`;
-  const text = `${action}: ${current.last_event} ${trend} (${pressureNow}%). Mood shift: ${moodShift}. ${phaseLine}.`;
-
-  const tone: TranscriptEntry["tone"] =
-    pressureDelta < 0 || receptiveDelta > 0
-      ? "positive"
-      : pressureDelta > 0 || hostileDelta > 0
-        ? "warning"
-        : "neutral";
-
-  return {
-    id: `${current.step_index}-${Date.now()}`,
-    step: current.step_index,
-    text,
-    createdAt: Date.now(),
-    tone,
-  };
-}
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -421,13 +105,9 @@ export default function App() {
     setVerdictRevealIndex,
   } = store;
 
+  const [bgReady, setBgReady] = useState(false);
   const sessionTime = useSessionTimer(isAutoplay || isRunning);
   const transcriptRef = useRef<HTMLDivElement>(null);
-  const previousObservationRef = useRef<JuryObservation | null>(null);
-  const lastTranscriptKeyRef = useRef<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => window.localStorage.getItem("jury_onboarding_dismissed") !== "1",
-  );
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
@@ -437,16 +117,18 @@ export default function App() {
 
   useEffect(() => {
     if (!observation) return;
-    const key = `${observation.step_index}:${observation.last_event}`;
-    if (lastTranscriptKeyRef.current === key) return;
-    const entry = buildTranscriptEntry(
+    const action = tAction(
       language,
-      observation,
-      previousObservationRef.current,
+      observation.valid_actions[0] ?? "probe_bias",
     );
-    pushTranscript(entry);
-    previousObservationRef.current = observation;
-    lastTranscriptKeyRef.current = key;
+    pushTranscript({
+      id: `${observation.step_index}-${Date.now()}`,
+      step: observation.step_index,
+      text:
+        observation.last_event ||
+        template(language, "actionApplied", { action }),
+      tone: "neutral",
+    });
   }, [language, observation, pushTranscript]);
 
   useEffect(() => {
@@ -468,15 +150,7 @@ export default function App() {
     return () => window.clearInterval(t);
   }, [isVerdictOpen, observation, setVerdictRevealIndex]);
 
-  useEffect(() => {
-    if (!showOnboarding) {
-      window.localStorage.setItem("jury_onboarding_dismissed", "1");
-    }
-  }, [showOnboarding]);
-
   // ── Derived ───────────────────────────────────────────────────────────────
-  const dict = dictionary(language);
-  const uiText = UI_TEXT[language];
 
   const revealedVotes = useMemo(() => {
     if (!observation) return [];
@@ -484,51 +158,49 @@ export default function App() {
       i > verdictRevealIndex
         ? ""
         : mood === "hostile"
-          ? dict.verdict.guilty
-          : dict.verdict.notGuilty,
+          ? "Guilty"
+          : "Not Guilty",
     );
-  }, [dict.verdict.guilty, dict.verdict.notGuilty, observation, verdictRevealIndex]);
+  }, [observation, verdictRevealIndex]);
 
   const verdictLabel = useMemo(() => {
-    if (!observation) return uiText.noSimulationData;
-    if (observation.conviction_pressure < 0.4) return dict.verdict.established;
-    if (observation.conviction_pressure > 0.65) return dict.verdict.secured;
-    return dict.verdict.hung;
-  }, [dict.verdict.established, dict.verdict.hung, dict.verdict.secured, observation, uiText.noSimulationData]);
+    if (!observation) return "";
+    if (observation.conviction_pressure < 0.4)
+      return "Reasonable Doubt Established";
+    if (observation.conviction_pressure > 0.65) return "Conviction Secured";
+    return "Hung Jury";
+  }, [observation]);
 
   const pressure = observation?.conviction_pressure ?? 0;
   const pct = Math.round(pressure * 100);
   const pressureTag =
     pressure < 0.4
-      ? uiText.pressureNotGuilty
+      ? "NOT GUILTY"
       : pressure > 0.65
-        ? uiText.pressureGuilty
-        : uiText.pressureFence;
+        ? "LEANING GUILTY"
+        : "ON THE FENCE";
   const pressureTagBg =
     pressure < 0.4 ? "#15803d" : pressure > 0.65 ? "#dc2626" : "#a16207";
 
   const phase = observation?.phase ?? "voir_dire";
   const phaseIdx = PHASES.indexOf(phase as (typeof PHASES)[number]);
-  const phaseLabel = tPhase(language, phase);
-  const activeTaskTheme = TASK_META[selectedTask] ?? TASK_META.reasonable_doubt;
-  const activeTaskMeta =
-    TASK_META_I18N[language][selectedTask] ?? TASK_META_I18N[language].reasonable_doubt;
+  const phaseLabel = PHASE_LABELS[phase] ?? phase.replace("_", " ");
 
   const formattedTranscript = useMemo(
     () =>
-      transcript.slice(0, 20).map((entry) => {
-        const base = new Date(entry.createdAt);
+      transcript.slice(0, 20).map((entry, i) => {
+        const base = new Date(Date.now() - (transcript.length - i) * 75_000);
         const hh = String(base.getHours() % 12 || 12).padStart(2, "0");
         const mm = String(base.getMinutes()).padStart(2, "0");
         const ss = String(base.getSeconds()).padStart(2, "0");
         const ap = base.getHours() >= 12 ? "PM" : "AM";
         return {
           ...entry,
-          speaker: LOG_SPEAKER[language],
+          speaker: SPEAKER_CYCLE[i % SPEAKER_CYCLE.length],
           time: `${hh}:${mm}:${ss} ${ap}`,
         };
       }),
-    [language, transcript],
+    [transcript],
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -550,13 +222,11 @@ export default function App() {
           ╚═══════════════════════════════════╝ */}
       <header
         style={{
-          minHeight: 64,
+          height: 58,
           flexShrink: 0,
           zIndex: 30,
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
           padding: "0 20px",
           background: "rgba(5,5,5,0.97)",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
@@ -590,7 +260,7 @@ export default function App() {
                 textTransform: "uppercase",
               }}
             >
-              {dict.ui.title}
+              Courtroom Simulation
             </div>
             <div
               style={{
@@ -599,32 +269,23 @@ export default function App() {
                 marginTop: 1,
               }}
             >
-              {caseName} • {observation ? uiText.sessionActive : uiText.ready}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: "rgba(234,179,8,0.78)",
-                marginTop: 1,
-                letterSpacing: "0.04em",
-              }}
-            >
-              {HACKATHON_TAG}
+              {caseName} • {observation ? "Session Active" : "Ready"}
             </div>
           </div>
         </div>
 
-        {/* Phase pill */}
+        {/* Phase pill — absolute center */}
         <div
           style={{
-            marginLeft: 8,
-            background: "rgba(8,8,8,0.78)",
-            border: "1px solid rgba(255,255,255,0.14)",
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(0,0,0,0.6)",
+            border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 99,
-            padding: "7px 16px",
+            padding: "5px 24px",
             textAlign: "center",
-            boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
-            flexShrink: 0,
+            pointerEvents: "none",
           }}
         >
           <div
@@ -635,19 +296,19 @@ export default function App() {
               textTransform: "uppercase",
             }}
           >
-            {uiText.phaseLabel}:{" "}
+            PHASE:{" "}
             <span style={{ color: "#fff", fontWeight: 700 }}>
               {phaseLabel.toUpperCase()}
             </span>
           </div>
           <div
             style={{
-              fontSize: 10,
-              color: "rgba(255,255,255,0.42)",
-              marginTop: 2,
+              fontSize: 9,
+              color: "rgba(255,255,255,0.25)",
+              marginTop: 1,
             }}
           >
-            {PHASE_DESCRIPTIONS[language][phase] ?? uiText.courtroomProceeding}
+            Jury Selection &amp; Opening Statements
           </div>
         </div>
 
@@ -658,64 +319,31 @@ export default function App() {
             display: "flex",
             alignItems: "center",
             gap: 6,
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            rowGap: 6,
           }}
         >
-          <div
+          <select
+            value={selectedTask}
+            onChange={(e) =>
+              setTask(
+                e.target.value,
+                CASES[e.target.value] ?? CASES.reasonable_doubt,
+              )
+            }
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "rgba(0,0,0,0.45)",
+              background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 10,
-              padding: "4px",
+              borderRadius: 6,
+              color: "rgba(255,255,255,0.65)",
+              padding: "4px 9px",
+              fontSize: 11,
+              outline: "none",
+              cursor: "pointer",
             }}
           >
-            {(["reasonable_doubt", "poisoned_panel", "the_impossible_case"] as const).map(
-              (taskId) => {
-                const meta = TASK_META[taskId];
-                const localizedMeta = TASK_META_I18N[language][taskId];
-                const active = selectedTask === taskId;
-                return (
-                  <button
-                    key={taskId}
-                    onClick={() => setTask(taskId, CASES[taskId])}
-                    style={{
-                      border: active
-                        ? `1px solid ${meta.accent}`
-                        : "1px solid rgba(255,255,255,0.08)",
-                      background: active
-                        ? "rgba(255,255,255,0.09)"
-                        : "rgba(255,255,255,0.03)",
-                      color: active ? "#fff" : "rgba(255,255,255,0.55)",
-                      borderRadius: 8,
-                      padding: "6px 9px",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      minWidth: 108,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: active ? meta.accent : "rgba(255,255,255,0.45)",
-                      }}
-                    >
-                      {localizedMeta.level}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700 }}>
-                      {localizedMeta.title}
-                    </span>
-                  </button>
-                );
-              },
-            )}
-          </div>
+            <option value="reasonable_doubt">State v. Mercer</option>
+            <option value="poisoned_panel">State v. Aldridge</option>
+            <option value="the_impossible_case">State v. Harmon</option>
+          </select>
 
           {(["en", "hi", "kn", "te"] as AppLanguage[]).map((lang) => {
             const on = language === lang;
@@ -770,7 +398,7 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              API {health === "healthy" ? dict.ui.online : dict.ui.offline}
+              API {health === "healthy" ? "Online" : "Offline"}
             </span>
           </div>
         </div>
@@ -782,17 +410,60 @@ export default function App() {
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* ─── COURTROOM STAGE ─────────────────────────────── */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {/* BG image — no blur, just gentle dim */}
+          {/* Tiny blurred placeholder paints instantly while full background loads */}
           <div
             style={{
               position: "absolute",
               inset: 0,
-              backgroundImage: "url(https://i.postimg.cc/fL99RZ2Q/image.png)",
-              backgroundSize: "cover",
-              backgroundPosition: "center top",
-              filter: "brightness(0.75)",
+              overflow: "hidden",
+              opacity: bgReady ? 0 : 1,
+              transition: "opacity 320ms ease",
             }}
-          />
+          >
+            <img
+              src="/bg-blur.webp"
+              alt=""
+              aria-hidden="true"
+              decoding="async"
+              fetchPriority="high"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center top",
+                transform: "scale(1.08)",
+                filter: "blur(14px) brightness(0.68)",
+              }}
+            />
+          </div>
+
+          {/* Full background image */}
+          <picture
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "block",
+              opacity: bgReady ? 1 : 0,
+              transition: "opacity 380ms ease",
+            }}
+          >
+            <source srcSet="/bg.webp" type="image/webp" />
+            <img
+              src="/bg.png"
+              alt=""
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              onLoad={() => setBgReady(true)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center top",
+                filter: "brightness(0.75)",
+              }}
+            />
+          </picture>
 
           {/* Vignette: bottom dark fade for bottom rail legibility */}
           <div
@@ -815,14 +486,13 @@ export default function App() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              background: "linear-gradient(135deg, rgba(0,0,0,0.62), rgba(0,0,0,0.46))",
+              background: "rgba(0,0,0,0.52)",
               backdropFilter: "blur(8px)",
-              border: "1px solid rgba(255,255,255,0.13)",
+              border: "1px solid rgba(255,255,255,0.09)",
               borderRadius: 99,
-              padding: "6px 13px",
+              padding: "5px 13px",
               fontSize: 11,
               color: "rgba(255,255,255,0.78)",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.3)",
             }}
           >
             <span
@@ -835,72 +505,8 @@ export default function App() {
                 display: "inline-block",
               }}
             />
-            {uiText.courtroomLive}
+            Courtroom is Live
           </div>
-
-          {showOnboarding && (
-            <div
-              style={{
-                position: "absolute",
-                left: 14,
-                top: 74,
-                zIndex: 12,
-                width: 400,
-                maxWidth: "calc(100% - 28px)",
-                background:
-                  "linear-gradient(160deg, rgba(17,17,17,0.94), rgba(11,11,11,0.86))",
-                border: "1px solid rgba(234,179,8,0.34)",
-                borderRadius: 14,
-                padding: "13px 15px",
-                backdropFilter: "blur(8px)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.38)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#fbbf24",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {uiText.welcomeTitle}
-                </div>
-                <button
-                  onClick={() => setShowOnboarding(false)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "rgba(255,255,255,0.65)",
-                    cursor: "pointer",
-                    fontSize: 14,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.78)",
-                  marginTop: 6,
-                  lineHeight: 1.5,
-                }}
-              >
-                {uiText.onboardingBody}
-              </div>
-              <div style={{ marginTop: 8, fontSize: 11, color: activeTaskTheme.accent }}>
-                {uiText.active}: {activeTaskMeta.level} · {activeTaskMeta.objective}
-              </div>
-            </div>
-          )}
 
           {/* ── Defense card ── */}
           <div
@@ -909,14 +515,12 @@ export default function App() {
               left: 14,
               top: "35%",
               zIndex: 10,
-              background:
-                "linear-gradient(165deg, rgba(9,9,9,0.78), rgba(7,7,7,0.56))",
+              background: "rgba(0,0,0,0.55)",
               backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: "11px 14px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 10,
+              padding: "10px 13px",
               minWidth: 142,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.34)",
             }}
           >
             <div
@@ -937,11 +541,11 @@ export default function App() {
                   textTransform: "uppercase",
                 }}
               >
-                {uiText.defense}
+                Defense
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Adv. Ethan Caldwell
+              Adv. Arjun Mehta
             </div>
             <div
               style={{
@@ -950,7 +554,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              {uiText.forAccused}
+              For the Accused
             </div>
             {observation && (
               <div
@@ -981,14 +585,12 @@ export default function App() {
               right: 14,
               top: "35%",
               zIndex: 10,
-              background:
-                "linear-gradient(165deg, rgba(9,9,9,0.78), rgba(7,7,7,0.56))",
+              background: "rgba(0,0,0,0.55)",
               backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: "11px 14px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 10,
+              padding: "10px 13px",
               minWidth: 142,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.34)",
             }}
           >
             <div
@@ -1009,11 +611,11 @@ export default function App() {
                   textTransform: "uppercase",
                 }}
               >
-                {uiText.prosecution}
+                Prosecution
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Adv. Victoria Hayes
+              Adv. Priya Singh
             </div>
             <div
               style={{
@@ -1022,7 +624,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              {uiText.forState}
+              For the State
             </div>
           </div>
 
@@ -1034,15 +636,13 @@ export default function App() {
               top: "26%",
               transform: "translateX(-50%)",
               zIndex: 10,
-              background:
-                "linear-gradient(160deg, rgba(8,8,8,0.82), rgba(7,7,7,0.65))",
+              background: "rgba(0,0,0,0.65)",
               backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.13)",
-              borderRadius: 16,
-              padding: "15px 26px",
+              border: "1px solid rgba(255,255,255,0.09)",
+              borderRadius: 14,
+              padding: "14px 26px",
               minWidth: 300,
               textAlign: "center",
-              boxShadow: "0 12px 32px rgba(0,0,0,0.42)",
             }}
           >
             <div
@@ -1054,7 +654,7 @@ export default function App() {
                 marginBottom: 8,
               }}
             >
-              {uiText.convictionPressure} <span style={{ opacity: 0.4 }}>ⓘ</span>
+              Conviction Pressure <span style={{ opacity: 0.4 }}>ⓘ</span>
             </div>
             <div
               style={{
@@ -1134,8 +734,8 @@ export default function App() {
                 color: "rgba(255,255,255,0.26)",
               }}
             >
-              <span>{dict.verdict.notGuilty}</span>
-              <span>{dict.verdict.secured}</span>
+              <span>Not Guilty</span>
+              <span>Beyond Reasonable Doubt</span>
             </div>
           </div>
 
@@ -1177,7 +777,7 @@ export default function App() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {tMood(language, mood)}
+                      {MOOD_LABEL[mood] ?? mood}
                     </motion.span>
                   );
                 })}
@@ -1215,7 +815,7 @@ export default function App() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {tMood(language, mood)}
+                      {MOOD_LABEL[mood] ?? mood}
                     </motion.span>
                   );
                 })}
@@ -1287,7 +887,7 @@ export default function App() {
                   marginBottom: 5,
                 }}
               >
-                {uiText.courtroomAudio}
+                Courtroom Audio
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span
@@ -1302,7 +902,7 @@ export default function App() {
                 <span
                   style={{ fontSize: 10, color: "#22c55e", fontWeight: 700 }}
                 >
-                  {uiText.live}
+                  LIVE
                 </span>
               </div>
             </div>
@@ -1388,7 +988,7 @@ export default function App() {
                           fontWeight: active ? 700 : 400,
                         }}
                       >
-                        {tPhase(language, p)}
+                        {PHASE_LABELS[p]}
                       </span>
                     </div>
                   );
@@ -1407,7 +1007,7 @@ export default function App() {
                   marginBottom: 3,
                 }}
               >
-                ⏱ {dict.ui.runStatus}
+                ⏱ Session Time
               </div>
               <div
                 style={{
@@ -1501,18 +1101,13 @@ export default function App() {
                   textAlign: "center",
                 }}
               >
-                {uiText.resetToBegin}
+                Reset simulation to begin
               </div>
             )}
             <AnimatePresence initial={false}>
               {formattedTranscript.map((entry) => {
-                const sc = LOG_SPEAKER_COLOR;
-                const toneBg =
-                  entry.tone === "positive"
-                    ? "rgba(34,197,94,0.08)"
-                    : entry.tone === "warning"
-                      ? "rgba(239,68,68,0.08)"
-                      : "rgba(255,255,255,0.022)";
+                const sc =
+                  SPEAKER_COLOR[entry.speaker] ?? "rgba(255,255,255,0.32)";
                 return (
                   <motion.div
                     key={entry.id}
@@ -1524,7 +1119,7 @@ export default function App() {
                       margin: "0 10px 5px",
                       padding: "7px 10px",
                       borderLeft: `3px solid ${sc}`,
-                      background: toneBg,
+                      background: "rgba(255,255,255,0.022)",
                       borderRadius: "0 6px 6px 0",
                     }}
                   >
@@ -1585,7 +1180,7 @@ export default function App() {
                   display: "inline-block",
                 }}
               />
-              {uiText.autoTranscribing} {LANG_NAMES[language]}
+              Auto-Transcribing in {LANG_NAMES[language]}
             </div>
           </div>
 
@@ -1606,7 +1201,7 @@ export default function App() {
                 marginBottom: 8,
               }}
             >
-              {uiText.quickActions}
+              Quick Actions
             </div>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <button
@@ -1632,35 +1227,27 @@ export default function App() {
                   gap: 5,
                 }}
               >
-                {isAutoplay ? `⏸ ${dict.ui.pause}` : `▶ ${uiText.play}`}
+                {isAutoplay ? "⏸ Pause" : "▶ Play"}
               </button>
               <button
-                onClick={() => {
-                  if (!observation) return;
-                  setVerdictOpen(true);
-                }}
-                disabled={!observation}
+                onClick={() => setVerdictOpen(true)}
                 style={{
                   flex: 1,
                   padding: "9px 0",
-                  background: !observation
-                    ? "rgba(255,255,255,0.04)"
-                    : "rgba(234,179,8,0.14)",
-                  border: !observation
-                    ? "1px solid rgba(255,255,255,0.08)"
-                    : "1.5px solid rgba(234,179,8,0.38)",
+                  background: "rgba(234,179,8,0.14)",
+                  border: "1.5px solid rgba(234,179,8,0.38)",
                   borderRadius: 7,
-                  color: !observation ? "rgba(255,255,255,0.35)" : "#eab308",
+                  color: "#eab308",
                   fontSize: 12,
                   fontWeight: 700,
-                  cursor: !observation ? "not-allowed" : "pointer",
+                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 5,
                 }}
               >
-                ⚖️ {uiText.revealVerdict}
+                ⚖️ Reveal Verdict
               </button>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -1678,7 +1265,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                ↺ {uiText.reset}
+                ↺ Reset
               </button>
               <button
                 onClick={() => void step()}
@@ -1694,7 +1281,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                ⏭ {uiText.step}
+                ⏭ Step
               </button>
             </div>
           </div>
@@ -1742,7 +1329,7 @@ export default function App() {
                   marginBottom: 4,
                 }}
               >
-                ⚖️ {uiText.finalVerdict}
+                ⚖️ Final Verdict
               </div>
               <div
                 style={{
@@ -1754,17 +1341,6 @@ export default function App() {
               >
                 {verdictLabel}
               </div>
-              {!observation && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(255,255,255,0.6)",
-                    marginBottom: 14,
-                  }}
-                >
-                  {uiText.resetToBegin}
-                </div>
-              )}
               <div
                 style={{
                   display: "grid",
@@ -1775,10 +1351,10 @@ export default function App() {
               >
                 {[
                   [
-                    uiText.score,
+                    "Score",
                     `${Math.round((observation?.task_score ?? 0) * 100)}%`,
                   ],
-                  [uiText.pressure, `${pct}%`],
+                  ["Pressure", `${pct}%`],
                 ].map(([label, val]) => (
                   <div
                     key={label}
@@ -1805,7 +1381,7 @@ export default function App() {
               >
                 {(observation?.juror_moods ?? []).map((_, i) => {
                   const vote = revealedVotes[i];
-                  const guilty = vote === dict.verdict.guilty;
+                  const guilty = vote === "Guilty";
                   return (
                     <motion.div
                       key={i}
