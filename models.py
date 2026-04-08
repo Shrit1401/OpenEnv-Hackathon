@@ -95,8 +95,8 @@ class JuryObservation(Observation):
         description="Narrative description of what just happened in the courtroom",
     )
     task_score: float = Field(
-        default=0.0,
-        description="Current task grade (0.0–1.0) based on task-specific grader",
+        default=1e-6,
+        description="Current task grade in strict open interval (0, 1)",
     )
     valid_actions: List[str] = Field(
         default_factory=list,
