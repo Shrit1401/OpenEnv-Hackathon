@@ -111,7 +111,7 @@ def reset_task(task_id: str) -> Dict[str, Any]:
     resp = requests.post(
         f"{SERVER_URL}/reset",
         json={"task_id": task_id, "seed": SEED, "episode_id": f"{task_id}-baseline"},
-        timeout=30,
+        timeout=60,
     )
     resp.raise_for_status()
     data = resp.json()
@@ -125,7 +125,7 @@ def step_env(action_type: str, target_index: Optional[int] = None) -> Dict[str, 
     resp = requests.post(
         f"{SERVER_URL}/step",
         json={"action": action},
-        timeout=30,
+        timeout=60,
     )
     resp.raise_for_status()
     return resp.json()
@@ -280,7 +280,7 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        health = requests.get(f"{SERVER_URL}/health", timeout=10)
+        health = requests.get(f"{SERVER_URL}/health", timeout=30)
         health.raise_for_status()
     except Exception as e:
         print(f"ERROR: Cannot reach server at {SERVER_URL}: {e}")
