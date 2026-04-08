@@ -17,6 +17,12 @@ from models import JuryAction
 from server.jury_environment import JuryEnvironment
 
 TASKS = ["reasonable_doubt", "poisoned_panel", "the_impossible_case"]
+SCORE_EPSILON = 1e-6
+
+
+def strict_unit_interval(value: float) -> float:
+    """Clamp any score into strict open interval (0, 1)."""
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, float(value)))
 
 
 def choose_action(observation: Dict[str, Any]) -> JuryAction:
@@ -76,7 +82,7 @@ def run_episode(task_id: str, seed: int) -> Dict[str, Any]:
         "steps": steps,
         "start_pressure": start_pressure,
         "final_pressure": obs["conviction_pressure"],
-        "score": obs["task_score"],
+        "score": strict_unit_interval(obs["task_score"]),
         "total_reward": round(cumulative_reward, 4),
     }
 
@@ -100,13 +106,14 @@ def main() -> None:
         "seeds": args.seeds,
         "per_task": {
             task: {
-                "avg_score": round(mean(r["score"] for r in task_runs), 4),
+                # Keep reported task scores strictly inside (0, 1), even after formatting.
+                "avg_score": round(strict_unit_interval(mean(r["score"] for r in task_runs)), 6),
                 "avg_final_pressure": round(mean(r["final_pressure"] for r in task_runs), 4),
                 "avg_total_reward": round(mean(r["total_reward"] for r in task_runs), 4),
             }
             for task, task_runs in by_task.items()
         },
-        "overall_avg_score": round(mean(r["score"] for r in runs), 4),
+        "overall_avg_score": round(strict_unit_interval(mean(r["score"] for r in runs)), 6),
         "runs": runs,
     }
     print(json.dumps(summary, indent=2))

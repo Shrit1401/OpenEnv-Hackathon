@@ -199,7 +199,7 @@ def _grade_poisoned_panel(jurors: List[JurorHidden], initial_avg: float) -> floa
     cluster_below = sum(1 for j in cluster if j.conviction < 0.55) / 3
     avg_reduction = max(0.0, initial_avg - sum(j.conviction for j in jurors) / 12)
     reduction_score = min(1.0, avg_reduction / 0.35)
-    return cluster_below * 0.60 + reduction_score * 0.40
+    return _strict_unit_interval(cluster_below * 0.60 + reduction_score * 0.40)
 
 
 def _grade_impossible_case(jurors: List[JurorHidden], initial_avg: float) -> float:
@@ -211,7 +211,7 @@ def _grade_impossible_case(jurors: List[JurorHidden], initial_avg: float) -> flo
     holdouts = sum(1 for c in convictions if c < 0.40)
     stdev_score = min(1.0, stdev / 0.28)
     holdout_score = min(1.0, holdouts / 3)
-    return stdev_score * 0.50 + holdout_score * 0.50
+    return _strict_unit_interval(stdev_score * 0.50 + holdout_score * 0.50)
 
 
 # ---------------------------------------------------------------------------
