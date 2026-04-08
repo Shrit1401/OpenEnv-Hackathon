@@ -414,7 +414,7 @@ export default function App() {
             style={{
               position: "absolute",
               inset: 0,
-              backgroundImage: "url(https://i.postimg.cc/WtKd7Nth/bg.png)",
+              backgroundImage: "url(https://i.postimg.cc/5N98bjVq/bg.png)",
               backgroundSize: "cover",
               backgroundPosition: "center top",
               filter: "brightness(0.75)",
