@@ -1,3 +1,13 @@
+---
+title: Scaler
+emoji: ⚖️
+colorFrom: yellow
+colorTo: gray
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # Jury Consultant Environment
 
 **OpenEnv hackathon submission — Neura Rangers**
