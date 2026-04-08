@@ -7,9 +7,9 @@ import type { AppLanguage } from "@/store/simulation";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CASES: Record<string, string> = {
-  reasonable_doubt: "State v. Mercer",
-  poisoned_panel: "State v. Aldridge",
-  the_impossible_case: "State v. Harmon",
+  reasonable_doubt: "People v. Carter",
+  poisoned_panel: "People v. Whitmore",
+  the_impossible_case: "People v. Holloway",
 };
 
 const PHASES = [
@@ -21,24 +21,24 @@ const PHASES = [
 ] as const;
 const TASK_LABELS: Record<AppLanguage, Record<string, string>> = {
   en: {
-    reasonable_doubt: "State v. Mercer",
-    poisoned_panel: "State v. Aldridge",
-    the_impossible_case: "State v. Harmon",
+    reasonable_doubt: "People v. Carter",
+    poisoned_panel: "People v. Whitmore",
+    the_impossible_case: "People v. Holloway",
   },
   hi: {
-    reasonable_doubt: "राज्य बनाम मर्सर",
-    poisoned_panel: "राज्य बनाम एल्ड्रिज",
-    the_impossible_case: "राज्य बनाम हार्मन",
+    reasonable_doubt: "People v. Carter",
+    poisoned_panel: "People v. Whitmore",
+    the_impossible_case: "People v. Holloway",
   },
   kn: {
-    reasonable_doubt: "ರಾಜ್ಯ ವಿರುದ್ಧ ಮರ್ಸರ್",
-    poisoned_panel: "ರಾಜ್ಯ ವಿರುದ್ಧ ಆಲ್ಡ್ರಿಜ್",
-    the_impossible_case: "ರಾಜ್ಯ ವಿರುದ್ಧ ಹಾರ್ಮನ್",
+    reasonable_doubt: "People v. Carter",
+    poisoned_panel: "People v. Whitmore",
+    the_impossible_case: "People v. Holloway",
   },
   te: {
-    reasonable_doubt: "రాష్ట్రం వర్సెస్ మర్సర్",
-    poisoned_panel: "రాష్ట్రం వర్సెస్ ఆల్డ్రిడ్జ్",
-    the_impossible_case: "రాష్ట్రం వర్సెస్ హార్మన్",
+    reasonable_doubt: "People v. Carter",
+    poisoned_panel: "People v. Whitmore",
+    the_impossible_case: "People v. Holloway",
   },
 };
 
@@ -82,6 +82,13 @@ const ABOUT_CARD: Record<AppLanguage, { title: string; body: string }> = {
     title: "జ్యూరీ కన్సల్టెంట్‌కు స్వాగతం",
     body: "ఈ సిమ్యులేటర్ అనిశ్చిత పరిస్థితుల్లో రక్షణ వ్యూహాన్ని పరీక్షిస్తుంది. దశకు సరిపోయే చర్యలతో దోష ఒత్తిడిని తగ్గించి తుది స్కోర్‌ను మెరుగుపరచండి.",
   },
+};
+
+const START_HINT: Record<AppLanguage, string> = {
+  en: "To start, press Reset first, then Play.",
+  hi: "शुरू करने के लिए पहले Reset दबाएं, फिर Play दबाएं।",
+  kn: "ಆರಂಭಿಸಲು ಮೊದಲು Reset ಒತ್ತಿ, ನಂತರ Play ಒತ್ತಿ.",
+  te: "ప్రారంభించడానికి ముందుగా Reset నొక్కి, తర్వాత Play నొక్కండి.",
 };
 
 const CLOSE_LABEL: Record<AppLanguage, string> = {
@@ -520,11 +527,21 @@ export default function App() {
               padding: "8px 10px",
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#fcd34d", marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fcd34d", marginBottom: 6 }}>
               {about.title}
             </div>
-            <div style={{ fontSize: 10, lineHeight: 1.4, color: "rgba(255,255,255,0.8)" }}>
+            <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
               {about.body}
+            </div>
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#86efac",
+              }}
+            >
+              {START_HINT[language]}
             </div>
           </div>
 
@@ -565,7 +582,7 @@ export default function App() {
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Adv. Arjun Mehta
+              Atty. Michael Carter
             </div>
             <div
               style={{
@@ -635,7 +652,7 @@ export default function App() {
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Adv. Priya Singh
+              Atty. Olivia Reed
             </div>
             <div
               style={{
