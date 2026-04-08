@@ -105,7 +105,6 @@ export default function App() {
     setVerdictRevealIndex,
   } = store;
 
-  const [bgReady, setBgReady] = useState(false);
   const sessionTime = useSessionTimer(isAutoplay || isRunning);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -410,60 +409,17 @@ export default function App() {
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* ─── COURTROOM STAGE ─────────────────────────────── */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {/* Tiny blurred placeholder paints instantly while full background loads */}
+          {/* Static hosted background image */}
           <div
             style={{
               position: "absolute",
               inset: 0,
-              overflow: "hidden",
-              opacity: bgReady ? 0 : 1,
-              transition: "opacity 320ms ease",
+              backgroundImage: "url(https://i.postimg.cc/WtKd7Nth/bg.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center top",
+              filter: "brightness(0.75)",
             }}
-          >
-            <img
-              src="https://i.postimg.cc/0rr6mM55/bg-blur.webp"
-              alt=""
-              aria-hidden="true"
-              decoding="async"
-              fetchPriority="high"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center top",
-                transform: "scale(1.08)",
-                filter: "blur(14px) brightness(0.68)",
-              }}
-            />
-          </div>
-
-          {/* Full background image */}
-          <picture
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "block",
-              opacity: bgReady ? 1 : 0,
-              transition: "opacity 380ms ease",
-            }}
-          >
-            <source srcSet="https://i.postimg.cc/xqqkHJj0/bg.webp" type="image/webp" />
-            <img
-              src="https://i.postimg.cc/WtKd7Nth/bg.png"
-              alt=""
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-              onLoad={() => setBgReady(true)}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center top",
-                filter: "brightness(0.75)",
-              }}
-            />
-          </picture>
+          />
 
           {/* Vignette: bottom dark fade for bottom rail legibility */}
           <div
