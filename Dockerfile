@@ -23,9 +23,14 @@ RUN uv pip install --system \
     "requests>=2.31.0" \
     "openai>=1.0.0"
 
-# Build frontend assets
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
-RUN cd /app/env/frontend && npm ci && npm run build
+# Build frontend assets with modern Node/npm (lockfileVersion 3 requires newer npm)
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates gnupg && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+RUN node --version && npm --version
+RUN cd /app/env/frontend && npm ci --no-audit --no-fund && npm run build
 
 # Final stage
 FROM ${BASE_IMAGE}
