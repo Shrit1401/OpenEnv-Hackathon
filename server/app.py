@@ -14,6 +14,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -45,10 +46,10 @@ except ImportError:
 
 try:
     from ..models import JuryAction, JuryObservation
-    from .jury_environment import JuryEnvironment
+    from .jury_environment import JuryEnvironment, _PHASE_ACTIONS
 except ImportError:
     from models import JuryAction, JuryObservation
-    from server.jury_environment import JuryEnvironment
+    from server.jury_environment import JuryEnvironment, _PHASE_ACTIONS
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +100,8 @@ def reset(request: ResetRequest = None) -> ResetResponse:
         # task_id comes through as extra fields (ResetRequest uses extra="allow")
         if "task_id" in raw:
             kwargs["task_id"] = raw["task_id"]
+    if "task_id" not in kwargs and os.environ.get("TASK_ID"):
+        kwargs["task_id"] = os.environ["TASK_ID"]
 
     obs = _env.reset(**kwargs)
     serialized = serialize_observation(obs)
@@ -117,6 +120,15 @@ def step(request: StepRequest) -> StepResponse:
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    all_actions = {a for actions in _PHASE_ACTIONS.values() for a in actions}
+    if action.action_type not in all_actions:
+        raise HTTPException(status_code=422, detail=f"Unknown action type: {action.action_type}")
+    if action.action_type not in _env.valid_actions():
+        raise HTTPException(
+            status_code=422,
+            detail=f"Action '{action.action_type}' not allowed in phase '{_env._phase}'",
+        )
+
     obs = _env.step(action)
     serialized = serialize_observation(obs)
     return StepResponse(
@@ -128,8 +140,14 @@ def step(request: StepRequest) -> StepResponse:
 
 @app.get("/state")
 def state() -> Dict[str, Any]:
-    """Return current environment state (episode_id, step_count)."""
-    return _env.state.model_dump()
+    """Return current visible state only."""
+    return _env.visible_state()
+
+
+@app.get("/grade")
+def grade() -> Dict[str, float]:
+    """Return deterministic normalized score in [0.0, 1.0]."""
+    return {"score": _env.grade()}
 
 
 @app.get("/schema")
@@ -144,9 +162,8 @@ def schema() -> Dict[str, Any]:
 @app.get("/valid_actions")
 def valid_actions() -> Dict[str, Any]:
     """Return actions valid in the current phase."""
-    from server.jury_environment import _PHASE_ACTIONS
     phase = _env._phase
-    return {"phase": phase, "valid_actions": _PHASE_ACTIONS.get(phase, [])}
+    return {"phase": phase, "valid_actions": _env.valid_actions()}
 
 
 # ---------------------------------------------------------------------------
@@ -154,14 +171,18 @@ def valid_actions() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def main(host: str = "0.0.0.0", port: int = 7860) -> None:
+def run(host: str = "0.0.0.0", port: int = 7860) -> None:
     import uvicorn
     uvicorn.run(app, host=host, port=port)
 
 
-if __name__ == "__main__":
+def main() -> None:
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=7860)
     args = parser.parse_args()
-    main(port=args.port)
+    run(port=args.port)
+
+
+if __name__ == "__main__":
+    main()

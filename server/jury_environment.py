@@ -322,6 +322,28 @@ class JuryEnvironment(Environment):
 
         return self._build_obs(reward=reward, done=done)
 
+    def valid_actions(self) -> List[str]:
+        return list(_PHASE_ACTIONS.get(self._phase, []))
+
+    def grade(self) -> float:
+        return self._compute_task_score()
+
+    def visible_state(self) -> Dict[str, object]:
+        return {
+            "episode_id": self._state.episode_id,
+            "step_count": self._state.step_count,
+            "phase": self._phase,
+            "task_id": self._task_id,
+            "conviction_pressure": _conviction_pressure(self._jurors) if self._jurors else 0.5,
+            "juror_moods": [_mood_label(j.conviction, j.fatigue) for j in self._jurors] if self._jurors else ["neutral"] * 12,
+            "juror_fatigue": [_fatigue_label(j.fatigue) for j in self._jurors] if self._jurors else ["low"] * 12,
+            "remaining_challenges": self._challenges_left,
+            "remaining_witnesses": self._remaining_witness_names(),
+            "valid_actions": self.valid_actions(),
+            "done": self._phase == "verdict",
+            "score": self._compute_task_score(),
+        }
+
     # ------------------------------------------------------------------
     # Internal action dispatcher
     # ------------------------------------------------------------------
