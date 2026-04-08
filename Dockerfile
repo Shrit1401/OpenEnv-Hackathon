@@ -32,7 +32,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN node --version && npm --version
 RUN mkdir -p /app/env/frontend/dist \
     && cd /app/env/frontend \
-    && (npm ci --include=dev --no-audit --no-fund && npm run build) \
+    && (npm install --include=dev --no-audit --no-fund && npm run build) \
     || (echo "WARN: frontend build failed on this runner; continuing with API-only deployment" \
         && printf '<!doctype html><html><body><h1>Jury Env API</h1><p>Frontend build unavailable in this image.</p></body></html>' > /app/env/frontend/dist/index.html)
 

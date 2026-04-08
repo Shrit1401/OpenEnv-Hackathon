@@ -421,7 +421,7 @@ export default function App() {
             }}
           >
             <img
-              src="/bg-blur.webp"
+              src="https://i.postimg.cc/0rr6mM55/bg-blur.webp"
               alt=""
               aria-hidden="true"
               decoding="async"
@@ -447,9 +447,9 @@ export default function App() {
               transition: "opacity 380ms ease",
             }}
           >
-            <source srcSet="/bg.webp" type="image/webp" />
+            <source srcSet="https://i.postimg.cc/xqqkHJj0/bg.webp" type="image/webp" />
             <img
-              src="/bg.png"
+              src="https://i.postimg.cc/WtKd7Nth/bg.png"
               alt=""
               loading="eager"
               decoding="async"
