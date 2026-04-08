@@ -15,10 +15,13 @@ Usage:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
@@ -75,6 +78,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets")
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +171,25 @@ def valid_actions() -> Dict[str, Any]:
     """Return actions valid in the current phase."""
     phase = _env._phase
     return {"phase": phase, "valid_actions": _env.valid_actions()}
+
+
+@app.get("/")
+def index() -> Response:
+    index_file = _FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return Response(content='{"status":"healthy"}', media_type="application/json")
+
+
+@app.get("/{path:path}")
+def spa_fallback(path: str) -> Response:
+    # Leave API/docs routes to FastAPI handlers.
+    if path.startswith(("health", "reset", "step", "state", "grade", "schema", "valid_actions", "docs", "openapi.json", "redoc", "assets")):
+        raise HTTPException(status_code=404, detail="Not Found")
+    index_file = _FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 # ---------------------------------------------------------------------------
