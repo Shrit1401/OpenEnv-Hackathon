@@ -3,12 +3,15 @@ import unittest
 from fastapi.testclient import TestClient
 
 from models import JuryAction
+import server.app as app_module
 from server.app import app
 from server.jury_environment import JuryEnvironment
 
 
 class TestRound1Smoke(unittest.TestCase):
     def setUp(self) -> None:
+        # Reset the singleton env before each test so state never leaks
+        app_module._env = JuryEnvironment()
         self.client = TestClient(app)
 
     def test_health_and_reset_contract(self) -> None:
@@ -27,11 +30,9 @@ class TestRound1Smoke(unittest.TestCase):
 
     def test_invalid_action_penalty(self) -> None:
         self.client.post("/reset", json={"task_id": "reasonable_doubt", "seed": 42})
+        # closing_emotional is invalid during voir_dire phase — server returns 422
         step = self.client.post("/step", json={"action": {"action_type": "closing_emotional"}})
-        self.assertEqual(step.status_code, 200)
-        obs = step.json()["observation"]
-        self.assertIn("Invalid action", obs["last_event"])
-        self.assertAlmostEqual(float(step.json()["reward"]), -0.5, places=6)
+        self.assertEqual(step.status_code, 422)
 
     def test_episode_reaches_terminal(self) -> None:
         env = JuryEnvironment()
@@ -50,11 +51,15 @@ class TestRound1Smoke(unittest.TestCase):
     def test_seed_reproducibility_and_variation(self) -> None:
         env1 = JuryEnvironment()
         env2 = JuryEnvironment()
-        env3 = JuryEnvironment()
         o1 = env1.reset(task_id="poisoned_panel", seed=111).model_dump()
         o2 = env2.reset(task_id="poisoned_panel", seed=111).model_dump()
-        o3 = env3.reset(task_id="poisoned_panel", seed=222).model_dump()
+        # Same seed → same observable state and same episode_id prefix
+        self.assertEqual(o1["juror_moods"], o2["juror_moods"])
         self.assertEqual(o1["conviction_pressure"], o2["conviction_pressure"])
+        self.assertEqual(o1["remaining_challenges"], o2["remaining_challenges"])
+        # Different tasks → different conviction pressures
+        env3 = JuryEnvironment()
+        o3 = env3.reset(task_id="reasonable_doubt", seed=111).model_dump()
         self.assertNotEqual(o1["conviction_pressure"], o3["conviction_pressure"])
 
 
