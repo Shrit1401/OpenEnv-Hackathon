@@ -53,6 +53,7 @@ _ = LOCAL_IMAGE_NAME
 
 TASKS = ["reasonable_doubt", "poisoned_panel", "the_impossible_case"]
 SEED = 42
+SCORE_EPSILON = 1e-6
 
 TASK_DESCRIPTIONS = {
     "reasonable_doubt": "Standard trial. Reduce average jury conviction below 35%.",
@@ -79,6 +80,11 @@ Rules:
 Respond with JSON only:
 {"action_type": "...", "target_index": null_or_int}
 """
+
+
+def strict_unit_interval(value: float) -> float:
+    """Clamp any score into strict open interval (0, 1)."""
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, float(value)))
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +210,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     history: List[Dict] = []
     rewards: List[float] = []
     steps = 0
-    final_score = 0.0
+    final_score = SCORE_EPSILON
     success = False
 
     try:
@@ -233,7 +239,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
 
             rewards.append(reward)
             steps = step
-            final_score = float(obs.get("task_score", final_score))
+            final_score = strict_unit_interval(float(obs.get("task_score", final_score)))
 
             print(
                 f"[STEP] step={step} action={action_repr} reward={reward:.2f} "
@@ -248,10 +254,11 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     except Exception:
         success = False
     finally:
+        final_score = strict_unit_interval(final_score)
         rewards_csv = ",".join(f"{r:.2f}" for r in rewards)
         print(
             f"[END] success={str(success).lower()} steps={steps} "
-            f"score={final_score:.2f} rewards={rewards_csv}",
+            f"score={final_score:.6f} rewards={rewards_csv}",
             flush=True,
         )
 
