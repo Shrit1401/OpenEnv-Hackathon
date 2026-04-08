@@ -80,8 +80,9 @@ app.add_middleware(
 )
 
 _FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-if _FRONTEND_DIST.exists():
-    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets")
+_FRONTEND_ASSETS = _FRONTEND_DIST / "assets"
+if _FRONTEND_ASSETS.exists():
+    app.mount("/assets", StaticFiles(directory=_FRONTEND_ASSETS), name="assets")
 
 
 # ---------------------------------------------------------------------------
