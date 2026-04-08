@@ -18,6 +18,18 @@ This environment simulates that exact problem. The AI must reduce a 12-person ju
 
 ## How it works
 
+### System architecture
+
+```mermaid
+flowchart LR
+    A["LLM Agent (`inference.py`)"] -->|POST /reset, /step| B["FastAPI Server (`server/app.py`)"]
+    B --> C["Deterministic Environment (`server/jury_environment.py`)"]
+    C --> D["Hidden Jury State<br/>(conviction, fatigue, trust, influence)"]
+    C --> E["Task Grader<br/>(score 0.0-1.0)"]
+    C --> F["Visible Observation<br/>(moods, fatigue labels, pressure, valid actions)"]
+    F --> A
+```
+
 ### The jury
 
 12 jurors, each with a hidden psychological profile:
@@ -50,6 +62,18 @@ The trial moves through four phases. At each phase, only certain actions are ava
 | **Witness examination** | Defense calls witnesses to present evidence | `call_witness`, `request_recess` |
 | **Cross-examination** | Defense questions the prosecution's witness | `gentle_cross`, `aggressive_cross`, `impeach_witness`, `request_recess` |
 | **Closing argument** | Final statement to the jury | `closing_emotional`, `closing_reasonable_doubt`, `closing_procedural` |
+
+```mermaid
+stateDiagram-v2
+    [*] --> voir_dire
+    voir_dire --> witness_exam: accept_panel
+    witness_exam --> cross_examination: call_witness
+    cross_examination --> witness_exam: cross cycle complete + witnesses remain
+    cross_examination --> closing: cross cycle complete + no witnesses
+    witness_exam --> closing: no witnesses remain
+    closing --> verdict: closing_* action
+    verdict --> [*]
+```
 
 ### How jurors influence each other
 
@@ -152,6 +176,30 @@ The environment runs as an HTTP server. Any agent can interact with it via these
 | GET | `/state` | See current episode ID and step count |
 | GET | `/schema` | JSON schemas for action and observation formats |
 | GET | `/valid_actions` | List of actions legal in the current phase |
+
+### Episode interaction flow
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant API as FastAPI
+    participant Env as JuryEnvironment
+
+    Agent->>API: POST /reset {task_id, seed}
+    API->>Env: reset(...)
+    Env-->>API: initial observation
+    API-->>Agent: observation, done=false
+
+    loop Until done
+        Agent->>API: POST /step {action}
+        API->>Env: validate + step(action)
+        Env-->>API: observation, reward, done
+        API-->>Agent: observation, reward, done
+    end
+
+    Agent->>API: GET /state / GET /grade
+    API-->>Agent: visible state + normalized score
+```
 
 ---
 
