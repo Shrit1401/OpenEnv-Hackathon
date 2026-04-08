@@ -414,7 +414,7 @@ export default function App() {
             style={{
               position: "absolute",
               inset: 0,
-              backgroundImage: "url(https://i.postimg.cc/5N98bjVq/bg.png)",
+              backgroundImage: "url(https://i.postimg.cc/QdzTsb89/Whats-App-Image-2026-04-06-at-11-45-09-PM.jpg)",
               backgroundSize: "cover",
               backgroundPosition: "center top",
               filter: "brightness(0.75)",
