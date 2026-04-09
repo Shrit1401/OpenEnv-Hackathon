@@ -108,11 +108,25 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   setVerdictRevealIndex: (index) => set({ verdictRevealIndex: index }),
 
   checkHealth: async () => {
-    try {
-      const health = await getHealth()
-      set({ health: health.status === 'healthy' ? 'healthy' : 'offline' })
-    } catch {
+    const attempt = async () => {
+      try {
+        const health = await getHealth()
+        if (health.status === 'healthy') {
+          set({ health: 'healthy' })
+          return true
+        }
+      } catch {
+        // will retry
+      }
       set({ health: 'offline' })
+      return false
+    }
+
+    // Retry every 3s until healthy (up to 20 attempts = 60s)
+    for (let i = 0; i < 20; i++) {
+      const ok = await attempt()
+      if (ok) return
+      await new Promise((r) => setTimeout(r, 3000))
     }
   },
 
