@@ -181,12 +181,13 @@ def _conviction_pressure(jurors: List[JurorHidden]) -> float:
 # Graders (0.0–1.0 per task)
 # ---------------------------------------------------------------------------
 
-_SCORE_EPSILON = 1e-6
+_SCORE_MIN = 0.02
+_SCORE_MAX = 0.98
 
 
 def _strict_unit_interval(value: float) -> float:
-    """Clamp score to open interval (0, 1) for validator compliance."""
-    return max(_SCORE_EPSILON, min(1.0 - _SCORE_EPSILON, value))
+    """Clamp score to [0.02, 0.98] to avoid float precision issues at boundaries."""
+    return max(_SCORE_MIN, min(_SCORE_MAX, value))
 
 
 def _grade_reasonable_doubt(jurors: List[JurorHidden], initial_avg: float) -> float:
@@ -536,7 +537,7 @@ class JuryEnvironment(Environment):
     def _compute_task_score(self) -> float:
         if not self._jurors or self._task is None:
             # Even in uninitialized states, keep score in strict (0, 1).
-            return _SCORE_EPSILON
+            return _SCORE_MIN
         if self._task_id == "reasonable_doubt":
             raw = _grade_reasonable_doubt(self._jurors, self._initial_avg_conviction)
         elif self._task_id == "poisoned_panel":

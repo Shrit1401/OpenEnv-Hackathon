@@ -17,12 +17,13 @@ from models import JuryAction
 from server.jury_environment import JuryEnvironment
 
 TASKS = ["reasonable_doubt", "poisoned_panel", "the_impossible_case"]
-SCORE_EPSILON = 1e-6
+SCORE_MIN = 0.02
+SCORE_MAX = 0.98
 
 
 def strict_unit_interval(value: float) -> float:
-    """Clamp any score into strict open interval (0, 1)."""
-    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, float(value)))
+    """Clamp any score into [0.02, 0.98] to avoid float precision issues at boundaries."""
+    return max(SCORE_MIN, min(SCORE_MAX, float(value)))
 
 
 def choose_action(observation: Dict[str, Any]) -> JuryAction:

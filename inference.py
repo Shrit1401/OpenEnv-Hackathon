@@ -46,7 +46,8 @@ _ = LOCAL_IMAGE_NAME  # consumed by runners using from_docker_image()
 
 TASKS = ["reasonable_doubt", "poisoned_panel", "the_impossible_case"]
 SEED = 42
-SCORE_EPSILON = 1e-6
+SCORE_MIN = 0.02
+SCORE_MAX = 0.98
 
 SYSTEM_PROMPT = """\
 You are an expert trial consultant advising the defense.
@@ -100,7 +101,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 # ---------------------------------------------------------------------------
 
 def strict_unit_interval(value: float) -> float:
-    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, float(value)))
+    return max(SCORE_MIN, min(SCORE_MAX, float(value)))
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +222,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     history: List[Dict] = []
     rewards: List[float] = []
     steps = 0
-    final_score = SCORE_EPSILON
+    final_score = SCORE_MIN
     success = False
 
     try:
