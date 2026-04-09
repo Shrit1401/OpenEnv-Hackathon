@@ -11,4 +11,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/health': 'http://localhost:7860',
+      '/reset': 'http://localhost:7860',
+      '/step': 'http://localhost:7860',
+      '/state': 'http://localhost:7860',
+      '/valid_actions': 'http://localhost:7860',
+    },
+  },
 })
