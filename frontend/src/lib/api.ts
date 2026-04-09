@@ -31,7 +31,7 @@ type ValidActionsResponse = {
   valid_actions: string[];
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://0.0.0.0:7860";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, init);
