@@ -930,6 +930,53 @@ export default function App() {
             </>
           )}
 
+          {/* ── Case brief — bottom-left overlay ── */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 80,
+              left: 14,
+              zIndex: 12,
+              maxWidth: 240,
+              background: "rgba(0,0,0,0.72)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 10,
+              padding: "8px 11px",
+            }}
+          >
+            <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 3 }}>
+              Case Brief
+            </div>
+            {(observation?.real_case_ref || CASE_PRESETS[selectedTask]?.realRef) && (
+              <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 3, opacity: 0.85 }}>
+                {observation?.real_case_ref ?? CASE_PRESETS[selectedTask].realRef}
+              </div>
+            )}
+            <div style={{ fontSize: 9, lineHeight: 1.45, color: "rgba(255,255,255,0.7)" }}>
+              {observation?.case_summary ?? CASE_PRESETS[selectedTask]?.summary ?? ""}
+            </div>
+            {observation?.charges && observation.charges.length > 0 && (
+              <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 2 }}>
+                {observation.charges.map((c) => (
+                  <span key={c} style={{ fontSize: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", borderRadius: 3, padding: "1px 4px" }}>{c}</span>
+                ))}
+              </div>
+            )}
+            {observation?.current_witness_brief && (
+              <div style={{ marginTop: 5, paddingTop: 5, borderTop: "1px solid rgba(255,255,255,0.07)", fontSize: 9, lineHeight: 1.4 }}>
+                <span style={{ fontWeight: 700, color: "#93c5fd" }}>On stand: </span>
+                <span style={{ color: "rgba(255,255,255,0.6)" }}>{observation.current_witness_brief}</span>
+              </div>
+            )}
+            {!observation && CASE_PRESETS[selectedTask] && (
+              <div style={{ marginTop: 4 }}>
+                <span style={{ fontSize: 9, color: "#86efac", fontWeight: 700 }}>{CASE_PRESETS[selectedTask].difficulty}</span>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>Goal: {CASE_PRESETS[selectedTask].goal}</span>
+              </div>
+            )}
+          </div>
+
           {/* ── Bottom rail: Timeline + Session Time ── */}
           <div
             style={{
@@ -1080,58 +1127,6 @@ export default function App() {
             overflow: "hidden",
           }}
         >
-          {/* ── Case brief panel — top of sidebar ── */}
-          <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
-              Case Brief
-            </div>
-            {(observation?.real_case_ref || CASE_PRESETS[selectedTask]?.realRef) && (
-              <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 4, opacity: 0.85 }}>
-                {observation?.real_case_ref ?? CASE_PRESETS[selectedTask].realRef}
-              </div>
-            )}
-            <div style={{ fontSize: 10, lineHeight: 1.5, color: "rgba(255,255,255,0.78)" }}>
-              {observation?.case_summary ?? CASE_PRESETS[selectedTask]?.summary ?? ""}
-            </div>
-            {observation?.charges && observation.charges.length > 0 && (
-              <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 3 }}>
-                {observation.charges.map((c) => (
-                  <span key={c} style={{ fontSize: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", borderRadius: 3, padding: "1px 5px" }}>{c}</span>
-                ))}
-              </div>
-            )}
-            {/* On stand: current witness brief */}
-            {observation?.current_witness_brief && (
-              <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.07)", fontSize: 9, lineHeight: 1.45 }}>
-                <span style={{ fontWeight: 700, color: "#93c5fd" }}>On stand: </span>
-                <span style={{ color: "rgba(255,255,255,0.65)" }}>{observation.current_witness_brief}</span>
-              </div>
-            )}
-            {/* Witness roster */}
-            {observation?.witness_profiles && observation.witness_profiles.length > 0 && !observation.current_witness_brief && (
-              <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Witnesses</div>
-                {observation.witness_profiles.map((wp) => (
-                  <div key={wp.name} style={{ marginBottom: 4, opacity: wp.used ? 0.35 : 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: wp.used ? "rgba(255,255,255,0.35)" : "#fff", display: "flex", gap: 4, alignItems: "center" }}>
-                      <span style={{ fontSize: 8, background: wp.used ? "rgba(255,255,255,0.06)" : "rgba(96,165,250,0.15)", color: wp.used ? "rgba(255,255,255,0.25)" : "#93c5fd", borderRadius: 3, padding: "1px 4px" }}>{wp.type}</span>
-                      {wp.name}
-                      {wp.used && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>✓</span>}
-                    </div>
-                    {!wp.used && wp.role && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", lineHeight: 1.35, marginTop: 1 }}>{wp.role}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-            {!observation && CASE_PRESETS[selectedTask] && (
-              <div style={{ marginTop: 5 }}>
-                <div style={{ fontSize: 9, color: "#86efac", fontWeight: 700 }}>{CASE_PRESETS[selectedTask].difficulty}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>Goal: {CASE_PRESETS[selectedTask].goal}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#86efac", marginTop: 6 }}>{ui.startHint}</div>
-              </div>
-            )}
-          </div>
-
           {/* Transcript header */}
           <div
             style={{
