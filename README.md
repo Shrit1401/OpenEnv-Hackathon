@@ -393,6 +393,73 @@ Terminal bonuses (applied in closing):
 
 ---
 
+## Case Backstories
+
+Each task has a full narrative context. Here is the complete backstory per case — useful for building richer prompts.
+
+---
+
+### Task 1: State v. Mercer — Reasonable Doubt (Easy)
+
+**The defendant:** Marcus Mercer, 34, warehouse worker. No prior record. Accused of robbing a convenience store at gunpoint on the night of March 14th.
+
+**What happened:** At 9:47 PM, a masked individual robbed the store at gunpoint, taking $340 from the register. Store clerk Maria Santos called 911 and identified Mercer from a photo lineup three days later, saying she was "80% sure." Police found a partial fingerprint on the register — too degraded for a definitive match.
+
+**The defense position:** Mercer was clocked in at his warehouse job 14 miles away at the time of the robbery. His employer Dr. Kim holds the time-card records. The defense argues Santos's ID is unreliable (dim lighting, stress, brief contact) and the fingerprint is inconclusive.
+
+**Key witnesses:**
+| Witness | Role | Strategic note |
+|---------|------|---------------|
+| **Dr. Kim** | Mercer's employer; confirms warehouse time-card showing he was on shift during the robbery. | Your strongest asset — call early. Prosecution will challenge the time-card system's accuracy. |
+| **Dr. Chen** | Forensic expert; argues the partial fingerprint is too degraded for a reliable match. | Credible but dry. Works best on procedurally-minded jurors. |
+| **Maria Santos** | Store clerk; the prosecution's eyewitness and anchor of the case. | Cross her carefully — her stress-impaired perception and lighting conditions are exploitable, but aggressive cross can backfire. |
+| **Tom Mercer Sr.** | Marcus's father; character reference. | Low evidentiary weight. Use only if jury trust is already high. |
+
+**Winning condition:** Drive average jury conviction below 35% before closing. Challenge the two leader jurors (seats 0 and 6) early — they pull the whole panel.
+
+---
+
+### Task 2: State v. Aldridge — Poisoned Panel (Medium)
+
+**The defendant:** James Aldridge Jr., 51, CFO of Aldridge & Partners financial advisory firm. Accused of wire fraud and embezzlement — allegedly siphoning $2.3 million to an offshore account over 18 months.
+
+**What happened:** Internal auditors flagged 14 unauthorized wire transfers. The prosecution's star witness, Rachel Thorn — a former compliance officer Aldridge fired six months earlier — claims she watched him personally authorize the transfers in a private meeting. Bank records show systematic patterns that a forensic accountant calls "conclusive."
+
+**The complication:** Three jurors (seats 0, 1, 2) have personal connections to financial fraud victims. They entered deliberations convinced of guilt and actively influence the nine neutral jurors around them. Their influence cluster is the real enemy — not the evidence.
+
+**The defense position:** The transfers were authorized by a third party using a forged signature. Dr. Osei (handwriting expert) can challenge the signatures. Prof. Hammond disputes the forensic accounting methodology. Rachel Thorn has a personal grievance — she's not a neutral witness.
+
+**Key witnesses:**
+| Witness | Role | Strategic note |
+|---------|------|---------------|
+| **Prof. Hammond** | Forensic accountant; disputes the prosecution's interpretation of the bank records. | Counter-narrative to the prosecution's "conclusive" claim. Call early before the cluster locks in neutral jurors. |
+| **Rachel Thorn** | Whistleblower; prosecution's eyewitness to the alleged transfers. | Cross-examine aggressively — her firing six months prior is a credibility bomb. High risk, high reward. |
+| **Dr. Osei** | Handwriting expert; argues the signatures on transfer approvals were forged. | Specific, technical. Pairs well with Hammond to create a coherent alternative theory. |
+| **James Aldridge Sr.** | Character witness. | Low weight with biased jurors. Skip if resources are limited. |
+
+**Winning condition:** Break the three-juror hostile cluster (all below 0.55 conviction) while keeping neutral jurors from being contaminated (none above 0.70). Challenge at least 2 of the 3 cluster seats in voir dire.
+
+---
+
+### Task 3: State v. Harmon — The Impossible Case (Hard)
+
+**The defendant:** Devon Harmon, 28, former restaurant manager. Charged with first-degree murder in the death of a business partner.
+
+**Why it's "impossible":** The prosecution has DNA at the scene, two independent eyewitnesses, and a documented history of conflict between Harmon and the victim. Nine of twelve jurors begin voir dire already convinced of guilt. The math is against acquittal.
+
+**The only viable goal:** Create a hung jury. You need at least 3 holdouts with conviction below 0.40. Do not try to win outright — the ceiling score for this task is intentionally ~0.45.
+
+**What happened:** Victor Lau, Harmon's business partner, was found dead in their shared restaurant after a confrontation documented on security footage. Harmon's DNA was on the victim's jacket. Two witnesses place Harmon at the scene an hour before the estimated time of death. Harmon claims he left before the incident and the DNA transfer happened during an earlier argument.
+
+**Key witnesses:**
+| Witness | Role | Strategic note |
+|---------|------|---------------|
+| **Dr. Patel** | Forensic scientist; argues the DNA sample shows signs of cross-contamination during collection. | Your only witness. Call before step 12 — the jury's patience with the defense narrative erodes fast. Aggressive cross after calling them maximizes the split. |
+
+**Winning condition:** Not acquittal. Get 3+ jurors below 0.40 conviction and 4+ below 0.50. Use your 3 peremptory challenges strategically — don't waste them all. The faster you create variance in the panel, the better.
+
+---
+
 ## Why "The Impossible Case" Is Designed to Be Hard
 
 The scenario is not meant to be solvable with a high score. A skilled agent should achieve ~0.15–0.45 — the ceiling is intentionally low.

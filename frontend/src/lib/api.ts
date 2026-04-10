@@ -9,6 +9,8 @@ export type WitnessProfile = {
   name: string;
   type: string;
   theme: string;
+  role?: string;
+  risk?: string;
   used: boolean;
 };
 
@@ -49,6 +51,7 @@ export type JuryObservation = {
   remaining_challenges: number;
   remaining_witnesses: string[];
   current_witness: string | null;
+  current_witness_brief?: string | null;
   last_event: string;
   task_score: number;
   valid_actions: string[];

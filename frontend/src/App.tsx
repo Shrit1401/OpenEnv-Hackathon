@@ -495,7 +495,7 @@ export default function App() {
             }}
           />
 
-          {/* ── Courtroom is Live badge ── */}
+          {/* ── Case briefing card — welcome before start, backstory after ── */}
           <div
             style={{
               position: "absolute",
@@ -510,22 +510,55 @@ export default function App() {
               padding: "8px 10px",
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#fcd34d", marginBottom: 6 }}>
-              {ui.welcomeTitle}
-            </div>
-            <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
-              {ui.welcomeBody}
-            </div>
-            <div
-              style={{
-                marginTop: 8,
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#86efac",
-              }}
-            >
-              {ui.startHint}
-            </div>
+            {observation?.case_summary ? (
+              <>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>
+                  Case Brief
+                </div>
+                <div style={{ fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,0.82)" }}>
+                  {observation.case_summary}
+                </div>
+                {/* When a witness is on the stand, show their brief */}
+                {observation.current_witness_brief && (
+                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 10, lineHeight: 1.5 }}>
+                    <span style={{ fontWeight: 700, color: "#93c5fd" }}>On stand: </span>
+                    <span style={{ color: "rgba(255,255,255,0.72)" }}>{observation.current_witness_brief}</span>
+                  </div>
+                )}
+                {/* Witness roster — show role + risk for unused witnesses */}
+                {!observation.current_witness_brief && observation.witness_profiles && observation.witness_profiles.length > 0 && (
+                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.28)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+                      Witnesses
+                    </div>
+                    {observation.witness_profiles.map((wp) => (
+                      <div key={wp.name} style={{ marginBottom: 5, opacity: wp.used ? 0.38 : 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: wp.used ? "rgba(255,255,255,0.4)" : "#fff", display: "flex", gap: 5, alignItems: "center" }}>
+                          <span style={{ fontSize: 8, background: wp.used ? "rgba(255,255,255,0.08)" : "rgba(96,165,250,0.18)", color: wp.used ? "rgba(255,255,255,0.3)" : "#93c5fd", borderRadius: 3, padding: "1px 4px" }}>{wp.type}</span>
+                          {wp.name}
+                          {wp.used && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>✓ called</span>}
+                        </div>
+                        {!wp.used && wp.role && (
+                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", lineHeight: 1.4, marginTop: 1 }}>{wp.role}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fcd34d", marginBottom: 6 }}>
+                  {ui.welcomeTitle}
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
+                  {ui.welcomeBody}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: "#86efac" }}>
+                  {ui.startHint}
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── Defense card ── */}

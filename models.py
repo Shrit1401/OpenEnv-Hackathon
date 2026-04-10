@@ -90,6 +90,10 @@ class JuryObservation(Observation):
     current_witness: Optional[str] = Field(
         default=None, description="Witness currently on the stand"
     )
+    current_witness_brief: Optional[str] = Field(
+        default=None,
+        description="One-line context for the active witness: role + cross risk. Only set during cross_examination.",
+    )
     last_event: str = Field(
         default="Trial begins.",
         description="Narrative description of what just happened in the courtroom",

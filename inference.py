@@ -185,6 +185,7 @@ def choose_action(obs: Dict[str, Any], client: OpenAI, history: List[Dict]) -> D
         f"Remaining challenges: {obs.get('remaining_challenges', 0)}\n"
         f"Remaining witnesses: {obs.get('remaining_witnesses', [])}\n"
         f"Current witness: {obs.get('current_witness')}\n"
+        f"Current witness brief: {obs.get('current_witness_brief')}\n"
         f"Last event: {obs.get('last_event', '')}\n"
         f"Cross actions remaining: {obs.get('cross_actions_remaining', 2)}\n"
         f"Phase deadline remaining: {obs.get('phase_deadline_steps_remaining')}\n"

@@ -98,10 +98,10 @@ class TaskConfig:
     fatigue_growth_rate: float           # added per step
     max_steps: int
     # ---- casework artifact fields (all have defaults so existing callers work unchanged) ----
-    case_summary: str = ""               # 1–3 sentence case description for agent context
+    case_summary: str = ""               # 2–4 sentence case description for agent context
     charges: List[str] = field(default_factory=list)        # formal charges
     evidence: List[dict] = field(default_factory=list)      # [{"id","kind","strength","summary"}]
-    witness_profiles_static: List[dict] = field(default_factory=list)  # static witness metadata
+    witness_profiles_static: List[dict] = field(default_factory=list)  # [{"name","type","theme","role","risk","used"}]
     goals_static: List[dict] = field(default_factory=list)  # template goals (completed=False)
     coalition_hint: Optional[dict] = None                   # poisoned_panel cluster hint
 
@@ -162,9 +162,10 @@ def _make_task(task_id: str) -> TaskConfig:
             fatigue_growth_rate=0.03,
             max_steps=25,
             case_summary=(
-                "State v. Mercer: armed robbery at a convenience store. "
-                "Prosecution relies on eyewitness ID and partial fingerprints. "
-                "Defense argues mistaken identity and a strong alibi."
+                "State v. Mercer: Marcus Mercer, 34, is accused of robbing a convenience store at gunpoint. "
+                "The prosecution's case rests on an eyewitness ID by store clerk Maria Santos and a partial fingerprint. "
+                "The defense argues mistaken identity — Mercer was clocked in at work at the time of the robbery, "
+                "and Dr. Kim (his employer) can verify it. The key dispute: was the eyewitness reliable under stress?"
             ),
             charges=["Armed Robbery (Penal Code § 211)", "Assault with a Deadly Weapon"],
             evidence=[
@@ -178,10 +179,14 @@ def _make_task(task_id: str) -> TaskConfig:
                  "summary": "No prior record; prosecution claims financial desperation."},
             ],
             witness_profiles_static=[
-                {"name": "Dr. Chen", "type": "expert", "theme": "forensics analysis — disputes fingerprint reliability", "used": False},
-                {"name": "Maria Santos", "type": "eyewitness", "theme": "store clerk — primary prosecution witness", "used": False},
-                {"name": "Tom Mercer Sr.", "type": "character", "theme": "character reference for defendant", "used": False},
-                {"name": "Dr. Kim", "type": "alibi", "theme": "alibis the defendant at workplace", "used": False},
+                {"name": "Dr. Chen", "type": "expert", "theme": "forensics analysis — disputes fingerprint reliability",
+                 "role": "Challenges the partial fingerprint match; argues contamination and low-quality sample.", "risk": "May seem overly technical to emotional jurors.", "used": False},
+                {"name": "Maria Santos", "type": "eyewitness", "theme": "store clerk — primary prosecution witness",
+                 "role": "Prosecution's anchor: identified Mercer from 8 feet away during the robbery.", "risk": "Cross may expose stress-impaired memory and lighting conditions.", "used": False},
+                {"name": "Tom Mercer Sr.", "type": "character", "theme": "character reference for defendant",
+                 "role": "Defendant's father; vouches for Marcus's character and stable employment history.", "risk": "Low credibility weight — jurors discount family testimony.", "used": False},
+                {"name": "Dr. Kim", "type": "alibi", "theme": "alibis the defendant at workplace",
+                 "role": "Mercer's employer; confirms he was clocked in at the warehouse during the robbery window.", "risk": "Prosecution will challenge the time-card system's accuracy.", "used": False},
             ],
             goals_static=[
                 {"id": "g1", "description": "Use at least one peremptory challenge to remove a biased juror", "priority": 1, "required_phase": "voir_dire", "completed": False, "completed_at_step": None},
@@ -233,9 +238,10 @@ def _make_task(task_id: str) -> TaskConfig:
             fatigue_growth_rate=0.04,
             max_steps=25,
             case_summary=(
-                "State v. Aldridge: financial fraud and embezzlement. "
-                "Three jurors are strongly biased toward conviction and "
-                "actively pull the rest of the panel toward a guilty verdict."
+                "State v. Aldridge: CFO James Aldridge Jr. is accused of siphoning $2.3M from his firm via forged wire transfers. "
+                "Three jurors (seats 0–2) entered with extreme bias — they know the alleged victim company and believe Aldridge is guilty before trial. "
+                "The defense claims the signature was forged and the transfers were authorized by a third party. "
+                "Prof. Hammond can contest the forensic accounting; Dr. Osei can challenge the signature authenticity."
             ),
             charges=["Wire Fraud (18 U.S.C. § 1343)", "Embezzlement (Penal Code § 503)"],
             evidence=[
@@ -249,10 +255,14 @@ def _make_task(task_id: str) -> TaskConfig:
                  "summary": "Defendant had significant gambling debts at the time of the alleged fraud."},
             ],
             witness_profiles_static=[
-                {"name": "Prof. Hammond", "type": "expert", "theme": "financial forensics — disputes bank record interpretation", "used": False},
-                {"name": "Rachel Thorn", "type": "eyewitness", "theme": "whistleblower — prosecution's key witness", "used": False},
-                {"name": "James Aldridge Sr.", "type": "character", "theme": "character witness for defendant", "used": False},
-                {"name": "Dr. Osei", "type": "alibi", "theme": "handwriting expert — disputes signature authenticity", "used": False},
+                {"name": "Prof. Hammond", "type": "expert", "theme": "financial forensics — disputes bank record interpretation",
+                 "role": "Forensic accountant; testifies the transfers match a pattern of third-party authorization, not internal fraud.", "risk": "Dry testimony — hostile jurors may tune out.", "used": False},
+                {"name": "Rachel Thorn", "type": "eyewitness", "theme": "whistleblower — prosecution's key witness",
+                 "role": "Claims she witnessed Aldridge personally approve the transfers in a private meeting.", "risk": "Cross may expose personal grievance — she was fired by Aldridge six months prior.", "used": False},
+                {"name": "James Aldridge Sr.", "type": "character", "theme": "character witness for defendant",
+                 "role": "Defendant's father and firm co-founder; attests to his son's financial ethics over 20 years.", "risk": "Biased jurors will dismiss family testimony outright.", "used": False},
+                {"name": "Dr. Osei", "type": "alibi", "theme": "handwriting expert — disputes signature authenticity",
+                 "role": "Document examiner; argues the wire transfer signatures show signs of skilled forgery.", "risk": "Prosecution has a counter-expert; outcome depends on jury's trust in forensics.", "used": False},
             ],
             goals_static=[
                 {"id": "g1", "description": "Break the 3-juror hostile cluster — all below 0.55 conviction", "priority": 1, "completed": False, "completed_at_step": None},
@@ -297,9 +307,10 @@ def _make_task(task_id: str) -> TaskConfig:
             fatigue_growth_rate=0.06,
             max_steps=25,
             case_summary=(
-                "State v. Harmon: first-degree murder with strong physical evidence. "
-                "Nine jurors begin firmly convinced of guilt. "
-                "Acquittal is near-impossible; the goal is a hung jury."
+                "State v. Harmon: Devon Harmon, 28, is charged with first-degree murder. "
+                "DNA at the scene and two eyewitnesses have already convinced 9 of 12 jurors before voir dire ends. "
+                "Acquittal is impossible — the only viable goal is a hung jury by creating 3+ holdouts. "
+                "Dr. Patel is your only witness; call them early before the jury's patience with the defense runs out."
             ),
             charges=["First-Degree Murder (Penal Code § 187)", "Use of a Deadly Weapon"],
             evidence=[
@@ -314,7 +325,8 @@ def _make_task(task_id: str) -> TaskConfig:
             ],
             witness_profiles_static=[
                 {"name": "Dr. Patel", "type": "expert",
-                 "theme": "forensics expert — creates reasonable doubt about DNA collection procedure", "used": False},
+                 "theme": "forensics expert — creates reasonable doubt about DNA collection procedure",
+                 "role": "Crime lab analyst; argues the DNA sample was mishandled — cross-contamination is possible.", "risk": "Strong prosecution rebuttal ready; only works if you build doubt before closing.", "used": False},
             ],
             goals_static=[
                 {"id": "g1", "description": f"Call Dr. Patel before step {IMPOSSIBLE_CASE_DEADLINE} (only witness)", "priority": 1, "deadline_step": IMPOSSIBLE_CASE_DEADLINE, "completed": False, "completed_at_step": None},
@@ -1083,6 +1095,19 @@ class JuryEnvironment(Environment):
         if self._task_id == "the_impossible_case":
             deadline_remaining = max(0, IMPOSSIBLE_CASE_DEADLINE - self._state.step_count)
 
+        # current_witness_brief: one-line context only when a witness is on the stand
+        current_witness_brief: Optional[str] = None
+        if self._current_witness_idx is not None and self._task:
+            static = self._task.witness_profiles_static
+            if self._current_witness_idx < len(static):
+                wp = static[self._current_witness_idx]
+                role = wp.get("role", "")
+                risk = wp.get("risk", "")
+                if role and risk:
+                    current_witness_brief = f"{role} Risk: {risk}"
+                elif role:
+                    current_witness_brief = role
+
         return JuryObservation(
             # ---- existing fields (unchanged) ----
             phase=self._phase,
@@ -1109,6 +1134,7 @@ class JuryEnvironment(Environment):
             pending_goals=pending_goals,
             coalition_hint=self._task.coalition_hint if self._task else None,
             cross_actions_remaining=max(0, CROSS_ACTIONS_PER_WITNESS - self._cross_actions_taken),
+            current_witness_brief=current_witness_brief,
             jury_patience=round(self._jury_patience, 4),
             juror_profiles_visible=self._compute_juror_profiles_visible() if self._jurors else [],
             reward_breakdown=self._compute_reward_breakdown(),
