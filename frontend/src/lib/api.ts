@@ -59,6 +59,7 @@ export type JuryObservation = {
   done?: boolean;
   reward?: number;
   // Round-2 casework artifact fields (optional for backwards compat)
+  real_case_ref?: string;
   case_summary?: string;
   charges?: string[];
   evidence?: EvidenceItem[];

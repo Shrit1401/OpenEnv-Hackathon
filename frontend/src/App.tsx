@@ -7,9 +7,9 @@ import type { AppLanguage } from "@/store/simulation";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CASES: Record<string, string> = {
-  reasonable_doubt: "People v. Carter",
-  poisoned_panel: "People v. Whitmore",
-  the_impossible_case: "People v. Holloway",
+  reasonable_doubt: "State v. Cotton",
+  poisoned_panel: "United States v. Skilling",
+  the_impossible_case: "State v. Syed",
 };
 
 const PHASES = [
@@ -21,24 +21,24 @@ const PHASES = [
 ] as const;
 const TASK_LABELS: Record<AppLanguage, Record<string, string>> = {
   en: {
-    reasonable_doubt: "People v. Carter",
-    poisoned_panel: "People v. Whitmore",
-    the_impossible_case: "People v. Holloway",
+    reasonable_doubt: "State v. Cotton",
+    poisoned_panel: "U.S. v. Skilling",
+    the_impossible_case: "State v. Syed",
   },
   hi: {
-    reasonable_doubt: "People v. Carter",
-    poisoned_panel: "People v. Whitmore",
-    the_impossible_case: "People v. Holloway",
+    reasonable_doubt: "State v. Cotton",
+    poisoned_panel: "U.S. v. Skilling",
+    the_impossible_case: "State v. Syed",
   },
   kn: {
-    reasonable_doubt: "People v. Carter",
-    poisoned_panel: "People v. Whitmore",
-    the_impossible_case: "People v. Holloway",
+    reasonable_doubt: "State v. Cotton",
+    poisoned_panel: "U.S. v. Skilling",
+    the_impossible_case: "State v. Syed",
   },
   te: {
-    reasonable_doubt: "People v. Carter",
-    poisoned_panel: "People v. Whitmore",
-    the_impossible_case: "People v. Holloway",
+    reasonable_doubt: "State v. Cotton",
+    poisoned_panel: "U.S. v. Skilling",
+    the_impossible_case: "State v. Syed",
   },
 };
 
@@ -515,6 +515,11 @@ export default function App() {
                 <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>
                   Case Brief
                 </div>
+                {observation.real_case_ref && (
+                  <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 5, opacity: 0.82 }}>
+                    Inspired by: {observation.real_case_ref}
+                  </div>
+                )}
                 <div style={{ fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,0.82)" }}>
                   {observation.case_summary}
                 </div>

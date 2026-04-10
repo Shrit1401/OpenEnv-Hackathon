@@ -72,6 +72,7 @@ class JurorHidden:
     procedural_trust: float   # 0.0–1.0: belief in legal process
     aggression_sensitivity: float  # 0.0–1.0: punishes aggressive lawyers
     influence_power: float    # 0.0–1.0: how much this juror moves others
+    rigidity: float = 0.5     # 0.0–1.0: resistance to conviction change (high=stubborn)
     bias_triggered: bool = False
 
 
@@ -92,6 +93,7 @@ class TaskConfig:
     juror_aggression_sensitivities: List[float]
     juror_procedural_trusts: List[float]
     juror_influence_powers: List[float]
+    juror_rigidities: List[float]        # per-juror resistance to persuasion
     influence_matrix: List[List[float]]  # 12x12, how much i pulls j
     witnesses: List[WitnessHidden]
     max_challenges: int
@@ -99,6 +101,7 @@ class TaskConfig:
     max_steps: int
     # ---- casework artifact fields (all have defaults so existing callers work unchanged) ----
     case_summary: str = ""               # 2–4 sentence case description for agent context
+    real_case_ref: str = ""              # real-world case this scenario is inspired by
     charges: List[str] = field(default_factory=list)        # formal charges
     evidence: List[dict] = field(default_factory=list)      # [{"id","kind","strength","summary"}]
     witness_profiles_static: List[dict] = field(default_factory=list)  # [{"name","type","theme","role","risk","used"}]
@@ -131,24 +134,34 @@ def _make_task(task_id: str) -> TaskConfig:
         return max(0.0, min(1.0, base + rng.uniform(-spread, spread)))
 
     if task_id == "reasonable_doubt":
-        # Easy task: neutral jury, two leader jurors, 4 witnesses, 6 challenges.
-        # Goal: drive avg conviction below 35% through witness examination + strategic challenges.
-        convictions = [jitter(0.50) for _ in range(11)] + [jitter(0.75)]
+        # Inspired by: People v. Ronald Cotton (1984, NC)
+        # Easy task: neutral jury, two leader jurors (0 and 6), 4 witnesses, 6 challenges.
+        # Jury starts near 50% conviction. Strong alibi + flawed eyewitness = winnable.
+        # Jurors have low-to-medium rigidity — they can be moved with the right approach.
+        convictions = [
+            jitter(0.65), jitter(0.52), jitter(0.48), jitter(0.55),
+            jitter(0.50), jitter(0.47), jitter(0.68), jitter(0.51),
+            jitter(0.49), jitter(0.53), jitter(0.46), jitter(0.50),
+        ]
         agg_sens = [jitter(0.35) for _ in range(12)]
-        proc_trust = [jitter(0.55) for _ in range(12)]
+        proc_trust = [jitter(0.60) for _ in range(12)]
         influence_powers = [jitter(0.20) for _ in range(12)]
-        influence_powers[0] = 0.60   # juror 0 is a leader
+        influence_powers[0] = 0.60   # juror 0 is a leader (higher conviction)
         influence_powers[6] = 0.55   # juror 6 is co-leader
+        # Low-to-medium rigidity: open-minded jury, movable with evidence
+        rigidities = [jitter(0.35, 0.10) for _ in range(12)]
+        rigidities[0] = 0.55   # leader is more set in their view
+        rigidities[6] = 0.50
         matrix = [[0.0] * 12 for _ in range(12)]
         for j in [0, 6]:
             for k in range(12):
                 if k != j:
                     matrix[j][k] = 0.12
         witnesses = [
-            WitnessHidden("Dr. Chen", "expert", 0.75, 0.40, 0.55),
-            WitnessHidden("Maria Santos", "eyewitness", 0.60, 0.70, 0.65),
-            WitnessHidden("Tom Mercer Sr.", "character", 0.55, 0.65, 0.45),
-            WitnessHidden("Dr. Kim", "alibi", 0.70, 0.35, 0.50),
+            WitnessHidden("DNA Expert (Dr. Sewall)", "expert", 0.75, 0.40, 0.55),
+            WitnessHidden("Jennifer Thompson", "eyewitness", 0.60, 0.70, 0.65),
+            WitnessHidden("Ronald Cotton Sr.", "character", 0.55, 0.65, 0.45),
+            WitnessHidden("Bobby Poole (Alibi)", "alibi", 0.70, 0.35, 0.50),
         ]
         return TaskConfig(
             name="reasonable_doubt",
@@ -156,43 +169,57 @@ def _make_task(task_id: str) -> TaskConfig:
             juror_aggression_sensitivities=agg_sens,
             juror_procedural_trusts=proc_trust,
             juror_influence_powers=influence_powers,
+            juror_rigidities=rigidities,
             influence_matrix=matrix,
             witnesses=witnesses,
             max_challenges=6,
             fatigue_growth_rate=0.03,
             max_steps=25,
+            real_case_ref="People v. Ronald Cotton (Burlington, NC, 1984)",
             case_summary=(
-                "State v. Mercer: Marcus Mercer, 34, is accused of robbing a convenience store at gunpoint. "
-                "The prosecution's case rests on an eyewitness ID by store clerk Maria Santos and a partial fingerprint. "
-                "The defense argues mistaken identity — Mercer was clocked in at work at the time of the robbery, "
-                "and Dr. Kim (his employer) can verify it. The key dispute: was the eyewitness reliable under stress?"
+                "State v. Cotton: Ronald Cotton, 22, is accused of rape and burglary based on a lineup identification "
+                "by Jennifer Thompson — a college student who studied her attacker's face to identify him later. "
+                "The defense argues mistaken identity: the real perpetrator was Bobby Poole, and Cotton has a solid alibi. "
+                "DNA testing (unavailable at trial) would later exonerate Cotton. Your job: plant reasonable doubt now."
             ),
-            charges=["Armed Robbery (Penal Code § 211)", "Assault with a Deadly Weapon"],
+            charges=["Rape (First-Degree)", "Burglary (First-Degree)"],
             evidence=[
-                {"id": "ev1", "kind": "eyewitness", "strength": 0.60,
-                 "summary": "Store clerk identified defendant from ~8 feet away, under stress."},
-                {"id": "ev2", "kind": "forensics", "strength": 0.40,
-                 "summary": "Partial fingerprint on register — inconclusive match."},
-                {"id": "ev3", "kind": "alibi", "strength": 0.70,
-                 "summary": "Employer confirms defendant was clocked in at work during the robbery."},
-                {"id": "ev4", "kind": "motive", "strength": 0.30,
-                 "summary": "No prior record; prosecution claims financial desperation."},
+                {"id": "ev1", "kind": "eyewitness", "strength": 0.70,
+                 "summary": "Jennifer Thompson made a confident lineup ID — prosecution's anchor. But her initial description had inconsistencies."},
+                {"id": "ev2", "kind": "forensics", "strength": 0.30,
+                 "summary": "No conclusive physical match — hair and fiber analysis inconclusive."},
+                {"id": "ev3", "kind": "alibi", "strength": 0.90,
+                 "summary": "Cotton was at a different party, corroborated by multiple witnesses and a receipt."},
+                {"id": "ev4", "kind": "motive", "strength": 0.20,
+                 "summary": "No prior sexual offenses; defense argues prosecution built case around a single flawed ID."},
             ],
             witness_profiles_static=[
-                {"name": "Dr. Chen", "type": "expert", "theme": "forensics analysis — disputes fingerprint reliability",
-                 "role": "Challenges the partial fingerprint match; argues contamination and low-quality sample.", "risk": "May seem overly technical to emotional jurors.", "used": False},
-                {"name": "Maria Santos", "type": "eyewitness", "theme": "store clerk — primary prosecution witness",
-                 "role": "Prosecution's anchor: identified Mercer from 8 feet away during the robbery.", "risk": "Cross may expose stress-impaired memory and lighting conditions.", "used": False},
-                {"name": "Tom Mercer Sr.", "type": "character", "theme": "character reference for defendant",
-                 "role": "Defendant's father; vouches for Marcus's character and stable employment history.", "risk": "Low credibility weight — jurors discount family testimony.", "used": False},
-                {"name": "Dr. Kim", "type": "alibi", "theme": "alibis the defendant at workplace",
-                 "role": "Mercer's employer; confirms he was clocked in at the warehouse during the robbery window.", "risk": "Prosecution will challenge the time-card system's accuracy.", "used": False},
+                {"name": "DNA Expert (Dr. Sewall)", "type": "expert",
+                 "theme": "forensics — argues physical evidence does not match defendant",
+                 "role": "Crime lab expert; testifies hair and fiber samples are non-conclusive and that collection procedure was flawed.",
+                 "risk": "DNA technology was primitive in 1984 — jury may not trust it over eyewitness testimony.",
+                 "used": False},
+                {"name": "Jennifer Thompson", "type": "eyewitness",
+                 "theme": "rape victim — prosecution's primary and only direct witness",
+                 "role": "Identified Cotton in a lineup; prosecution presents her as a careful, deliberate observer.",
+                 "risk": "Cross can expose: lighting conditions, stress impairment of memory, and inconsistencies in initial description vs. final ID.",
+                 "used": False},
+                {"name": "Ronald Cotton Sr.", "type": "character",
+                 "theme": "character reference — vouches for defendant's non-violent nature",
+                 "role": "Defendant's father; testifies to Ronald's stable employment and non-violent character.",
+                 "risk": "Jurors discount family testimony on credibility alone.",
+                 "used": False},
+                {"name": "Bobby Poole (Alibi)", "type": "alibi",
+                 "theme": "alibi witness — places defendant elsewhere during the crime",
+                 "role": "Witness at the party Cotton attended; corroborates alibi with receipt and timeline.",
+                 "risk": "Prosecution will claim alibi was arranged after arrest; time-gap in alibi is exploitable.",
+                 "used": False},
             ],
             goals_static=[
                 {"id": "g1", "description": "Use at least one peremptory challenge to remove a biased juror", "priority": 1, "required_phase": "voir_dire", "completed": False, "completed_at_step": None},
-                {"id": "g2", "description": "Call Dr. Kim (alibi witness) before closing", "priority": 2, "completed": False, "completed_at_step": None},
+                {"id": "g2", "description": "Call Bobby Poole (alibi witness) before closing", "priority": 2, "completed": False, "completed_at_step": None},
                 {"id": "g3", "description": "Drive average jury conviction below 0.35 by closing", "priority": 1, "deadline_step": 20, "completed": False, "completed_at_step": None},
-                {"id": "g4", "description": "Impeach Maria Santos to damage prosecution eyewitness credibility", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
+                {"id": "g4", "description": "Impeach Jennifer Thompson to expose stress-impaired memory and inconsistencies", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
                 {"id": "g5", "description": "Advance through all 4 phases without skipping witness examination", "priority": 2, "completed": False, "completed_at_step": None},
                 {"id": "g6", "description": "Keep jury fatigue low — no juror in 'high' fatigue at verdict", "priority": 4, "completed": False, "completed_at_step": None},
             ],
@@ -200,31 +227,37 @@ def _make_task(task_id: str) -> TaskConfig:
         )
 
     elif task_id == "poisoned_panel":
-        # Medium task: 3 highly biased jurors (seats 0-2) forming a tight influence cluster.
-        # Challenge: cluster reinforces itself AND pulls neutral jurors upward.
-        # Must break or neutralize the cluster before it contaminates everyone.
-        convictions = [0.90, 0.90, 0.90] + [jitter(0.50) for _ in range(9)]
-        agg_sens = [jitter(0.45) for _ in range(12)]
-        proc_trust = [jitter(0.45) for _ in range(12)]
+        # Inspired by: United States v. Jeffrey Skilling (Enron, 2006)
+        # Medium task: 3 jurors pre-biased by public outrage (seats 0-2 = 0.90 conviction).
+        # Cluster reinforces itself AND contaminates neutral jurors.
+        # High rigidity in cluster — they need challenges, not persuasion.
+        convictions = [0.90, 0.88, 0.91] + [jitter(0.52) for _ in range(9)]
+        agg_sens = [jitter(0.35, 0.10) for _ in range(12)]   # low aggression sensitivity (procedural jurors)
+        proc_trust = [jitter(0.70, 0.10) for _ in range(12)] # high procedural trust
         influence_powers = [jitter(0.25) for _ in range(12)]
         influence_powers[0] = 0.70
         influence_powers[1] = 0.65
         influence_powers[2] = 0.60
+        # Cluster high rigidity — they won't move without being removed
+        rigidities = [jitter(0.45, 0.10) for _ in range(12)]
+        rigidities[0] = 0.88   # most rigid — certain of guilt
+        rigidities[1] = 0.85
+        rigidities[2] = 0.82
         matrix = [[0.0] * 12 for _ in range(12)]
-        # tight cluster: 0/1/2 pull each other hard
+        # tight cluster internal reinforcement
         for a in [0, 1, 2]:
             for b in [0, 1, 2]:
                 if a != b:
                     matrix[a][b] = 0.25
-        # moderate outward influence from cluster to neutral jurors
+        # outward influence: cluster contaminates neutral jurors
         for a in [0, 1, 2]:
             for b in range(3, 12):
                 matrix[a][b] = 0.10
         witnesses = [
-            WitnessHidden("Prof. Hammond", "expert", 0.80, 0.30, 0.60),
-            WitnessHidden("Rachel Thorn", "eyewitness", 0.55, 0.75, 0.70),
-            WitnessHidden("James Aldridge Sr.", "character", 0.50, 0.70, 0.50),
-            WitnessHidden("Dr. Osei", "alibi", 0.65, 0.40, 0.55),
+            WitnessHidden("Prof. Loren Hammond", "expert", 0.80, 0.30, 0.60),
+            WitnessHidden("Sherron Watkins", "eyewitness", 0.55, 0.75, 0.70),
+            WitnessHidden("Thomas Skilling Sr.", "character", 0.50, 0.70, 0.50),
+            WitnessHidden("Dr. Osei (Handwriting)", "alibi", 0.65, 0.40, 0.55),
         ]
         return TaskConfig(
             name="poisoned_panel",
@@ -232,45 +265,59 @@ def _make_task(task_id: str) -> TaskConfig:
             juror_aggression_sensitivities=agg_sens,
             juror_procedural_trusts=proc_trust,
             juror_influence_powers=influence_powers,
+            juror_rigidities=rigidities,
             influence_matrix=matrix,
             witnesses=witnesses,
             max_challenges=6,
             fatigue_growth_rate=0.04,
             max_steps=25,
+            real_case_ref="United States v. Jeffrey Skilling (Enron, Houston, 2006)",
             case_summary=(
-                "State v. Aldridge: CFO James Aldridge Jr. is accused of siphoning $2.3M from his firm via forged wire transfers. "
-                "Three jurors (seats 0–2) entered with extreme bias — they know the alleged victim company and believe Aldridge is guilty before trial. "
-                "The defense claims the signature was forged and the transfers were authorized by a third party. "
-                "Prof. Hammond can contest the forensic accounting; Dr. Osei can challenge the signature authenticity."
+                "United States v. Skilling: Jeffrey Skilling, former Enron CEO, faces 28 counts of securities fraud "
+                "and conspiracy. After Enron's 2001 collapse destroyed 20,000 jobs and $60B in value, public rage is extreme. "
+                "Three jurors (seats 0–2) worked for Enron or held stock — they're convinced before opening arguments. "
+                "Prof. Hammond can dismantle the financial forensics; Dr. Osei can contest the signature evidence. Break the cluster or lose."
             ),
-            charges=["Wire Fraud (18 U.S.C. § 1343)", "Embezzlement (Penal Code § 503)"],
+            charges=["Securities Fraud (18 U.S.C. § 1348)", "Conspiracy to Commit Wire Fraud (18 U.S.C. § 1349)"],
             evidence=[
-                {"id": "ev1", "kind": "forensics", "strength": 0.75,
-                 "summary": "Bank records show systematic transfers to an offshore account."},
-                {"id": "ev2", "kind": "eyewitness", "strength": 0.55,
-                 "summary": "Whistleblower claims to have witnessed defendant approving the transfers."},
-                {"id": "ev3", "kind": "alibi", "strength": 0.50,
-                 "summary": "Defendant claims signature was forged; handwriting expert disputed."},
+                {"id": "ev1", "kind": "forensics", "strength": 0.85,
+                 "summary": "Pattern of suspicious transfers to offshore accounts — prosecution's strongest evidence."},
+                {"id": "ev2", "kind": "eyewitness", "strength": 0.75,
+                 "summary": "Sherron Watkins (CFO whistleblower) claims Skilling personally approved fraudulent accounting."},
+                {"id": "ev3", "kind": "alibi", "strength": 0.60,
+                 "summary": "Defense argues transfers were authorized by third-party board resolution; signature possibly forged."},
                 {"id": "ev4", "kind": "motive", "strength": 0.65,
-                 "summary": "Defendant had significant gambling debts at the time of the alleged fraud."},
+                 "summary": "Skilling sold $60M in Enron stock weeks before the collapse — prosecution calls it insider trading."},
             ],
             witness_profiles_static=[
-                {"name": "Prof. Hammond", "type": "expert", "theme": "financial forensics — disputes bank record interpretation",
-                 "role": "Forensic accountant; testifies the transfers match a pattern of third-party authorization, not internal fraud.", "risk": "Dry testimony — hostile jurors may tune out.", "used": False},
-                {"name": "Rachel Thorn", "type": "eyewitness", "theme": "whistleblower — prosecution's key witness",
-                 "role": "Claims she witnessed Aldridge personally approve the transfers in a private meeting.", "risk": "Cross may expose personal grievance — she was fired by Aldridge six months prior.", "used": False},
-                {"name": "James Aldridge Sr.", "type": "character", "theme": "character witness for defendant",
-                 "role": "Defendant's father and firm co-founder; attests to his son's financial ethics over 20 years.", "risk": "Biased jurors will dismiss family testimony outright.", "used": False},
-                {"name": "Dr. Osei", "type": "alibi", "theme": "handwriting expert — disputes signature authenticity",
-                 "role": "Document examiner; argues the wire transfer signatures show signs of skilled forgery.", "risk": "Prosecution has a counter-expert; outcome depends on jury's trust in forensics.", "used": False},
+                {"name": "Prof. Loren Hammond", "type": "expert",
+                 "theme": "financial forensics — disputes prosecution's accounting interpretation",
+                 "role": "Forensic accountant; testifies the transactions match a legitimate (if aggressive) mark-to-market accounting strategy — not fraud.",
+                 "risk": "Jury sees numbers, not narrative. Cluster jurors have already decided — this only moves neutral seats.",
+                 "used": False},
+                {"name": "Sherron Watkins", "type": "eyewitness",
+                 "theme": "whistleblower CFO — prosecution's star witness",
+                 "role": "Former Enron VP who wrote the internal memo warning of accounting problems; claims Skilling knew and concealed.",
+                 "risk": "Cross: she never directly witnessed criminal intent — only accounting irregularities. Her memo was internal, not a direct accusation.",
+                 "used": False},
+                {"name": "Thomas Skilling Sr.", "type": "character",
+                 "theme": "character witness — defendant's father vouches for integrity",
+                 "role": "Retired banker; attests to his son's 20-year track record of ethical business leadership.",
+                 "risk": "Biased jurors (seats 0-2) will openly dismiss family testimony. Low impact on cluster.",
+                 "used": False},
+                {"name": "Dr. Osei (Handwriting)", "type": "alibi",
+                 "theme": "document examiner — challenges board resolution signature authenticity",
+                 "role": "Forensic document expert; argues the key authorization signature shows signs of forgery or duress.",
+                 "risk": "Prosecution counter-expert is prepared; outcome depends on which expert the jury finds more credible.",
+                 "used": False},
             ],
             goals_static=[
                 {"id": "g1", "description": "Break the 3-juror hostile cluster — all below 0.55 conviction", "priority": 1, "completed": False, "completed_at_step": None},
                 {"id": "g2", "description": "Call Prof. Hammond (expert) to counter financial forensics narrative", "priority": 2, "completed": False, "completed_at_step": None},
                 {"id": "g3", "description": "Prevent cluster from contaminating neutral jurors (none above 0.70)", "priority": 1, "completed": False, "completed_at_step": None},
                 {"id": "g4", "description": "Challenge at least 2 of the 3 cluster jurors (seats 0/1/2) directly", "priority": 2, "required_phase": "voir_dire", "completed": False, "completed_at_step": None},
-                {"id": "g5", "description": "Call Dr. Osei (alibi/handwriting expert) to contest signature authenticity", "priority": 3, "completed": False, "completed_at_step": None},
-                {"id": "g6", "description": "Complete cross-examination of Rachel Thorn to damage whistleblower credibility", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
+                {"id": "g5", "description": "Call Dr. Osei (handwriting expert) to contest signature authenticity", "priority": 3, "completed": False, "completed_at_step": None},
+                {"id": "g6", "description": "Cross-examine Sherron Watkins to expose limits of her direct knowledge", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
             ],
             coalition_hint={
                 "size": 3,
@@ -280,20 +327,30 @@ def _make_task(task_id: str) -> TaskConfig:
         )
 
     else:  # the_impossible_case
-        # Hard task: 9 jurors start above 70% conviction. Almost no path to acquittal.
-        # Scoring rewards variance + holdouts (hung jury pattern), NOT uniform reduction.
-        # Only 1 witness, 3 challenges, and fast fatigue growth (0.06/step).
-        # IMPOSSIBLE to optimize all metrics simultaneously — intentional benchmark design.
-        convictions = [jitter(0.75) for _ in range(9)] + [jitter(0.45), jitter(0.40), jitter(0.35)]
-        agg_sens = [jitter(0.60) for _ in range(12)]
-        proc_trust = [jitter(0.35) for _ in range(12)]
+        # Inspired by: State v. Adnan Syed (Baltimore, 2000) — the "Serial" podcast case
+        # Hard task: 12 jurors start 65–90% conviction. Strong circumstantial evidence.
+        # Goal is NOT acquittal — maximize variance and create 3+ holdouts (hung jury).
+        # Only 1 witness, 3 challenges, high fatigue. Chain influence topology.
+        # High rigidity across the board — true believers resist being moved.
+        convictions = [
+            jitter(0.85), jitter(0.80), jitter(0.78), jitter(0.75),
+            jitter(0.82), jitter(0.88), jitter(0.90), jitter(0.73),
+            jitter(0.77), jitter(0.72), jitter(0.68), jitter(0.65),
+        ]
+        agg_sens = [jitter(0.60) for _ in range(12)]   # highly sensitive to aggression
+        proc_trust = [jitter(0.30) for _ in range(12)] # low trust in legal process
         influence_powers = [jitter(0.30) for _ in range(12)]
-        # chain topology: each juror pulls the next one in sequence
+        # Chain topology: 0→1→2→...→11 — conviction cascades down the chain
         matrix = [[0.0] * 12 for _ in range(12)]
         for i in range(11):
-            matrix[i][i + 1] = 0.15
+            matrix[i][i + 1] = 0.22  # stronger chain than before (inspired by Syed case: narrative dominates)
+        # High rigidity everywhere — the narrative is set; only surgical targeting works
+        rigidities = [jitter(0.70, 0.10) for _ in range(12)]
+        rigidities[9] = 0.35   # juror 9: potential holdout — lower conviction AND lower rigidity
+        rigidities[10] = 0.30  # juror 10: the most persuadable seat
+        rigidities[11] = 0.25  # juror 11: easiest to move
         witnesses = [
-            WitnessHidden("Dr. Patel", "expert", 0.70, 0.50, 0.65),
+            WitnessHidden("Asia McClain (Alibi)", "expert", 0.70, 0.50, 0.65),
         ]
         return TaskConfig(
             name="the_impossible_case",
@@ -301,40 +358,44 @@ def _make_task(task_id: str) -> TaskConfig:
             juror_aggression_sensitivities=agg_sens,
             juror_procedural_trusts=proc_trust,
             juror_influence_powers=influence_powers,
+            juror_rigidities=rigidities,
             influence_matrix=matrix,
             witnesses=witnesses,
             max_challenges=3,
             fatigue_growth_rate=0.06,
             max_steps=25,
+            real_case_ref="State v. Adnan Syed (Baltimore County, MD, 2000)",
             case_summary=(
-                "State v. Harmon: Devon Harmon, 28, is charged with first-degree murder. "
-                "DNA at the scene and two eyewitnesses have already convinced 9 of 12 jurors before voir dire ends. "
-                "Acquittal is impossible — the only viable goal is a hung jury by creating 3+ holdouts. "
-                "Dr. Patel is your only witness; call them early before the jury's patience with the defense runs out."
+                "State v. Syed: Adnan Syed, 17, is charged with the murder of his ex-girlfriend Hae Min Lee. "
+                "Cell tower records and witness Jay Wilds place him at the burial site — the jury already leans heavily guilty. "
+                "Acquittal is impossible. Your only goal: create 3+ holdout jurors to force a hung jury. "
+                "Asia McClain can place Syed at the library during the murder window — call her before the jury forecloses on the defense."
             ),
-            charges=["First-Degree Murder (Penal Code § 187)", "Use of a Deadly Weapon"],
+            charges=["First-Degree Murder (Md. Code § 2-201)", "Unlawful Imprisonment"],
             evidence=[
-                {"id": "ev1", "kind": "forensics", "strength": 0.85,
-                 "summary": "Defendant's DNA found at the scene — prosecution's strongest evidence."},
-                {"id": "ev2", "kind": "eyewitness", "strength": 0.80,
-                 "summary": "Two independent eyewitnesses place defendant at the scene."},
+                {"id": "ev1", "kind": "forensics", "strength": 0.80,
+                 "summary": "Cell tower pings place defendant's phone near the burial site — prosecution's technical anchor."},
+                {"id": "ev2", "kind": "eyewitness", "strength": 0.70,
+                 "summary": "Jay Wilds (friend) testifies defendant showed him the body — consistent but internally contradictory account."},
                 {"id": "ev3", "kind": "alibi", "strength": 0.45,
-                 "summary": f"Alibi witness claims defendant was elsewhere — credibility disputed. Context: informational only."},
-                {"id": "ev4", "kind": "motive", "strength": 0.70,
-                 "summary": "Defendant had documented conflict with victim spanning three years."},
+                 "summary": "Asia McClain saw defendant at the school library during the 2:15-2:36 pm murder window. Affidavit exists but was never introduced at trial."},
+                {"id": "ev4", "kind": "motive", "strength": 0.60,
+                 "summary": "Recent breakup with victim; prosecution paints a pattern of obsession and jealousy."},
             ],
             witness_profiles_static=[
-                {"name": "Dr. Patel", "type": "expert",
-                 "theme": "forensics expert — creates reasonable doubt about DNA collection procedure",
-                 "role": "Crime lab analyst; argues the DNA sample was mishandled — cross-contamination is possible.", "risk": "Strong prosecution rebuttal ready; only works if you build doubt before closing.", "used": False},
+                {"name": "Asia McClain (Alibi)", "type": "expert",
+                 "theme": "alibi witness — places defendant at library during the murder window",
+                 "role": "Former classmate; will testify she saw and spoke with Syed in the school library from 2:20–2:40 pm, the exact window of the alleged murder.",
+                 "risk": "Prosecution will attack: why didn't she come forward earlier? Was the affidavit written under pressure? The delay is the vulnerability.",
+                 "used": False},
             ],
             goals_static=[
-                {"id": "g1", "description": f"Call Dr. Patel before step {IMPOSSIBLE_CASE_DEADLINE} (only witness)", "priority": 1, "deadline_step": IMPOSSIBLE_CASE_DEADLINE, "completed": False, "completed_at_step": None},
+                {"id": "g1", "description": f"Call Asia McClain before step {IMPOSSIBLE_CASE_DEADLINE} (only witness)", "priority": 1, "deadline_step": IMPOSSIBLE_CASE_DEADLINE, "completed": False, "completed_at_step": None},
                 {"id": "g2", "description": "Create at least 3 holdout jurors with conviction below 0.40", "priority": 1, "completed": False, "completed_at_step": None},
                 {"id": "g3", "description": "Achieve conviction variance ≥ 0.20 stdev across the panel", "priority": 2, "completed": False, "completed_at_step": None},
-                {"id": "g4", "description": "Use aggressive cross at least once to maximize the split", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
+                {"id": "g4", "description": "Use aggressive cross at least once to fracture the chain narrative", "priority": 3, "required_phase": "cross_examination", "completed": False, "completed_at_step": None},
                 {"id": "g5", "description": "End with at least 4 jurors below 0.50 conviction (force genuine split)", "priority": 2, "completed": False, "completed_at_step": None},
-                {"id": "g6", "description": "Preserve at least 1 challenge — don't waste all 3 on non-leaders", "priority": 4, "completed": False, "completed_at_step": None},
+                {"id": "g6", "description": "Preserve at least 1 challenge — target chain leaders, not followers", "priority": 4, "completed": False, "completed_at_step": None},
             ],
             coalition_hint=None,
         )
@@ -501,6 +562,7 @@ class JuryEnvironment(Environment):
                 procedural_trust=self._task.juror_procedural_trusts[i],
                 aggression_sensitivity=self._task.juror_aggression_sensitivities[i],
                 influence_power=self._task.juror_influence_powers[i],
+                rigidity=self._task.juror_rigidities[i],
             )
             for i in range(12)
         ]
@@ -688,17 +750,18 @@ class JuryEnvironment(Environment):
             self._phase = "cross_examination"
             self._phases_visited.add("cross_examination")
             w = self._witnesses[idx]
-            # Witness testimony shifts conviction based on type
+            # Witness testimony shifts conviction based on type, damped by rigidity
             for j in self._jurors:
                 base_shift = -w.credibility * 0.12
                 if w.witness_type == "expert":
-                    shift = base_shift * (0.8 + j.procedural_trust * 0.4)
+                    raw_shift = base_shift * (0.8 + j.procedural_trust * 0.4)
                 elif w.witness_type == "eyewitness":
-                    shift = base_shift * (0.8 + j.emotional_temp * 0.4)
+                    raw_shift = base_shift * (0.8 + j.emotional_temp * 0.4)
                 elif w.witness_type == "character":
-                    shift = base_shift * (0.6 + j.emotional_temp * 0.6)
+                    raw_shift = base_shift * (0.6 + j.emotional_temp * 0.6)
                 else:  # alibi
-                    shift = base_shift * (0.9 + j.procedural_trust * 0.2)
+                    raw_shift = base_shift * (0.9 + j.procedural_trust * 0.2)
+                shift = self._apply_conviction_shift(j, raw_shift)
                 j.conviction = max(0.0, min(1.0, j.conviction + shift))
                 reward += -shift * 0.3
             self._last_event = f"{w.name} ({w.witness_type}) takes the stand. Jury attention sharpens."
@@ -706,7 +769,8 @@ class JuryEnvironment(Environment):
         elif action_type == "gentle_cross":
             w = self._witnesses[self._current_witness_idx] if self._current_witness_idx is not None else None
             for j in self._jurors:
-                shift = -0.03 - j.procedural_trust * 0.02
+                raw_shift = -0.03 - j.procedural_trust * 0.02
+                shift = self._apply_conviction_shift(j, raw_shift)
                 j.conviction = max(0.0, min(1.0, j.conviction + shift))
                 reward += -shift * 0.4
             self._cross_actions_taken += 1
@@ -719,13 +783,14 @@ class JuryEnvironment(Environment):
             cross_vuln = w.cross_vulnerability if w else 0.4
             for j in self._jurors:
                 if cross_vuln >= 0.5:
-                    shift = -0.10 - j.procedural_trust * 0.04
+                    raw_shift = -0.10 - j.procedural_trust * 0.04
                 else:
-                    shift = -0.04
+                    raw_shift = -0.04
                 if j.aggression_sensitivity > 0.5:
                     # Backfire: juror pushes back against aggressive lawyer
-                    shift = abs(shift) * 0.5
+                    raw_shift = abs(raw_shift) * 0.5
                     j.bias_triggered = True
+                shift = self._apply_conviction_shift(j, raw_shift)
                 j.conviction = max(0.0, min(1.0, j.conviction + shift))
                 reward += -shift * 0.5
             self._cross_actions_taken += 1
@@ -738,7 +803,8 @@ class JuryEnvironment(Environment):
                 impeach_effect = w.cross_vulnerability * 0.15
                 w.credibility = max(0.0, w.credibility - 0.20)
                 for j in self._jurors:
-                    shift = -impeach_effect * (0.5 + j.procedural_trust * 0.5)
+                    raw_shift = -impeach_effect * (0.5 + j.procedural_trust * 0.5)
+                    shift = self._apply_conviction_shift(j, raw_shift)
                     j.conviction = max(0.0, min(1.0, j.conviction + shift))
                     reward += -shift * 0.4
                 self._last_event = f"{w.name}'s credibility damaged. Jury appears less certain."
@@ -756,11 +822,12 @@ class JuryEnvironment(Environment):
             self._phases_visited.add("closing")
             for j in self._jurors:
                 if action_type == "closing_emotional":
-                    shift = -0.08 - j.emotional_temp * 0.10
+                    raw_shift = -0.08 - j.emotional_temp * 0.10
                 elif action_type == "closing_procedural":
-                    shift = -0.08 - j.procedural_trust * 0.10
+                    raw_shift = -0.08 - j.procedural_trust * 0.10
                 else:  # reasonable_doubt
-                    shift = -0.10
+                    raw_shift = -0.10
+                shift = self._apply_conviction_shift(j, raw_shift)
                 j.conviction = max(0.0, min(1.0, j.conviction + shift))
                 reward += -shift * 0.5
             avg = sum(j.conviction for j in self._jurors) / 12
@@ -776,6 +843,23 @@ class JuryEnvironment(Environment):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _apply_conviction_shift(self, juror: "JurorHidden", raw_shift: float) -> float:
+        """
+        Apply rigidity damping to a conviction shift before committing it.
+
+        rigidity=0.0 → full shift applied (no resistance)
+        rigidity=1.0 → only 20% of the shift applied (very stubborn)
+
+        WHY: High-rigidity jurors (e.g. the Enron cluster, Adnan Syed's panel)
+        resist persuasion even when evidence is strong. This is the core mechanic
+        that differentiates Case 2 (cluster must be challenged/removed) from Case 1
+        (cluster can be moved with the right witness).
+
+        Returns the actual conviction shift applied (post-damping).
+        """
+        damping = 1.0 - juror.rigidity * 0.80  # rigidity=1.0 → damping=0.20
+        return raw_shift * damping
 
     def _maybe_advance_from_cross(self) -> None:
         """After enough cross actions, return to witness_exam or closing."""
@@ -1126,6 +1210,7 @@ class JuryEnvironment(Environment):
             done=done,
             reward=reward,
             # ---- new casework artifact fields ----
+            real_case_ref=self._task.real_case_ref if self._task else "",
             case_summary=self._task.case_summary if self._task else "",
             charges=self._task.charges if self._task else [],
             evidence=self._task.evidence if self._task else [],

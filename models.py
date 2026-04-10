@@ -112,6 +112,10 @@ class JuryObservation(Observation):
     )
 
     # ---- casework artifacts (additive) ----
+    real_case_ref: str = Field(
+        default="",
+        description="Real-world case this scenario is inspired by (e.g. 'People v. Ronald Cotton, 1984').",
+    )
     case_summary: str = Field(
         default="",
         description="1–3 sentence description of the case being tried.",
