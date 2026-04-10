@@ -330,9 +330,18 @@ export default function App() {
             }}
           >
             {ui.phase}:{" "}
-            <span style={{ color: "#fff", fontWeight: 700 }}>
-              {phaseLabel.toUpperCase()}
-            </span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={phase}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                style={{ color: "#fff", fontWeight: 700, display: "inline-block" }}
+              >
+                {phaseLabel.toUpperCase()}
+              </motion.span>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -361,8 +370,10 @@ export default function App() {
             {(["reasonable_doubt", "poisoned_panel", "the_impossible_case"] as const).map((taskKey) => {
               const active = selectedTask === taskKey;
               return (
-                <button
+                <motion.button
                   key={taskKey}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ duration: 0.12 }}
                   onClick={() => setTask(taskKey, CASES[taskKey])}
                   style={{
                     minWidth: 128,
@@ -377,15 +388,16 @@ export default function App() {
                       ? "rgba(34,197,94,0.12)"
                       : "rgba(255,255,255,0.03)",
                     color: active ? "#ffffff" : "rgba(255,255,255,0.78)",
+                    transition: "background 200ms ease, border-color 200ms ease, color 200ms ease",
                   }}
                 >
-                  <div style={{ fontSize: 9, color: active ? "#86efac" : "rgba(255,255,255,0.55)" }}>
+                  <div style={{ fontSize: 9, color: active ? "#86efac" : "rgba(255,255,255,0.55)", transition: "color 200ms ease" }}>
                     {localizedDifficulty[taskKey]}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>
                     {localizedCases[taskKey]}
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -393,8 +405,10 @@ export default function App() {
           {(["en", "hi", "kn", "te"] as AppLanguage[]).map((lang) => {
             const on = language === lang;
             return (
-              <button
+              <motion.button
                 key={lang}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.1 }}
                 onClick={() => setLanguage(lang)}
                 style={{
                   display: "flex",
@@ -411,11 +425,12 @@ export default function App() {
                   color: on ? "#eab308" : "rgba(255,255,255,0.48)",
                   fontSize: 11,
                   cursor: "pointer",
+                  transition: "background 180ms ease, border-color 180ms ease, color 180ms ease",
                 }}
               >
                 <span style={{ fontSize: 11 }}>{LANG_ICONS[lang]}</span>
                 {LANG_NAMES[lang]}
-              </button>
+              </motion.button>
             );
           })}
 
@@ -427,7 +442,9 @@ export default function App() {
               fontSize: 11,
             }}
           >
-            <span
+            <motion.span
+              animate={health === "healthy" ? { opacity: [1, 0.4, 1] } : {}}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               style={{
                 width: 6,
                 height: 6,
@@ -668,7 +685,11 @@ export default function App() {
                 marginBottom: 12,
               }}
             >
-              <span
+              <motion.span
+                key={pct}
+                initial={{ opacity: 0.5, y: pct > (observation?.conviction_pressure ?? 0.5) * 100 - 1 ? -4 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
                 style={{
                   fontSize: 42,
                   fontWeight: 800,
@@ -678,20 +699,21 @@ export default function App() {
                 }}
               >
                 {pct}%
-              </span>
-              <span
+              </motion.span>
+              <motion.span
+                animate={{ background: pressureTagBg }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
                 style={{
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.06em",
                   color: "#fff",
-                  background: pressureTagBg,
                   borderRadius: 5,
                   padding: "5px 11px",
                 }}
               >
                 {pressureTag}
-              </span>
+              </motion.span>
             </div>
             {/* Gradient slider */}
             <div
@@ -863,13 +885,12 @@ export default function App() {
                     <motion.span
                       key={i}
                       initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04 }}
+                      animate={{ opacity: 1, y: 0, backgroundColor: MOOD_BG[mood] ?? "#374151" }}
+                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04, backgroundColor: { duration: 0.3, ease: "easeOut" } }}
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
                         color: "#fff",
-                        background: MOOD_BG[mood] ?? "#374151",
                         borderRadius: 99,
                         padding: "4px 14px",
                         boxShadow: "0 2px 10px rgba(0,0,0,0.55)",
@@ -901,13 +922,12 @@ export default function App() {
                     <motion.span
                       key={i}
                       initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04 }}
+                      animate={{ opacity: 1, y: 0, backgroundColor: MOOD_BG[mood] ?? "#374151" }}
+                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04, backgroundColor: { duration: 0.3, ease: "easeOut" } }}
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
                         color: "#fff",
-                        background: MOOD_BG[mood] ?? "#374151",
                         borderRadius: 99,
                         padding: "4px 14px",
                         boxShadow: "0 2px 10px rgba(0,0,0,0.55)",
@@ -962,7 +982,7 @@ export default function App() {
                   height: 2,
                   background: "#eab308",
                   borderRadius: 99,
-                  transition: "width 0.5s ease",
+                  transition: "width 400ms cubic-bezier(0.23,1,0.32,1)",
                   width:
                     phaseIdx >= 0
                       ? `${(phaseIdx / (PHASES.length - 1)) * 100}%`
@@ -1005,7 +1025,7 @@ export default function App() {
                           border: active
                             ? "2px solid rgba(234,179,8,0.3)"
                             : "none",
-                          transition: "all 0.3s",
+                          transition: "width 150ms ease-out, height 150ms ease-out, background 200ms ease, box-shadow 200ms ease, margin-top 150ms ease-out",
                           marginTop: active ? -3 : 0,
                         }}
                       />
@@ -1146,8 +1166,8 @@ export default function App() {
                     key={entry.id}
                     initial={{ opacity: 0, x: 6 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.14 }}
+                    exit={{ opacity: 0, x: -4 }}
+                    transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
                     style={{
                       margin: "0 10px 5px",
                       padding: "7px 10px",
@@ -1188,8 +1208,13 @@ export default function App() {
           </div>
 
           {/* ── Pending Goals panel ── */}
+          <AnimatePresence>
           {observation?.pending_goals && observation.pending_goals.length > 0 && (
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               style={{
                 padding: "8px 10px",
                 borderTop: "1px solid rgba(255,255,255,0.05)",
@@ -1242,8 +1267,9 @@ export default function App() {
                   <span>{g.description}</span>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* ── Jury Patience meter ── */}
           {typeof observation?.jury_patience === "number" && (
