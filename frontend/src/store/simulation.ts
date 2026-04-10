@@ -166,6 +166,11 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   step: async (actionType) => {
     const { validActions, targetIndex, observation } = get()
     if (!observation) return
+    // Don't step into a completed episode — nothing valid to send
+    if (observation.done || observation.valid_actions.length === 0) {
+      set({ isAutoplay: false, isVerdictOpen: true })
+      return
+    }
     const chosen = actionType ?? chooseFallbackAction(observation, validActions)
     set({ isRunning: true, lastError: '' })
     try {
@@ -173,11 +178,14 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
         chosen,
         chosen === 'challenge_juror' || chosen === 'call_witness' ? targetIndex : undefined,
       )
+      const nextObs = response.observation
+      const justFinished = response.done || nextObs.done || nextObs.valid_actions.length === 0
       set({
-        observation: response.observation,
-        validActions: response.observation.valid_actions,
+        observation: nextObs,
+        validActions: nextObs.valid_actions,
+        ...(justFinished ? { isAutoplay: false, isVerdictOpen: true } : {}),
       })
-      await get().syncState()
+      if (!justFinished) await get().syncState()
     } catch (error) {
       set({ lastError: error instanceof Error ? error.message : 'Step failed' })
     } finally {
