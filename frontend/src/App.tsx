@@ -515,99 +515,6 @@ export default function App() {
             }}
           />
 
-          {/* ── Case briefing card — welcome before start, backstory after ── */}
-          <div
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 14,
-              width: 240,
-              maxHeight: "calc(100% - 100px)",
-              overflowY: "auto",
-              zIndex: 10,
-              background: "rgba(0,0,0,0.72)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,255,255,0.09)",
-              borderRadius: 10,
-              padding: "8px 10px",
-            }}
-          >
-            {observation?.case_summary ? (
-              <>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>
-                  Case Brief
-                </div>
-                {observation.real_case_ref && (
-                  <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 5, opacity: 0.82 }}>
-                    Inspired by: {observation.real_case_ref}
-                  </div>
-                )}
-                <div style={{ fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,0.82)" }}>
-                  {observation.case_summary}
-                </div>
-                {/* When a witness is on the stand, show their brief */}
-                {observation.current_witness_brief && (
-                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 10, lineHeight: 1.5 }}>
-                    <span style={{ fontWeight: 700, color: "#93c5fd" }}>On stand: </span>
-                    <span style={{ color: "rgba(255,255,255,0.72)" }}>{observation.current_witness_brief}</span>
-                  </div>
-                )}
-                {/* Charges */}
-                {observation.charges && observation.charges.length > 0 && (
-                  <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 3 }}>
-                    {observation.charges.map((c) => (
-                      <span key={c} style={{ fontSize: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.22)", color: "#fca5a5", borderRadius: 3, padding: "1px 5px" }}>{c}</span>
-                    ))}
-                  </div>
-                )}
-                {/* Witness roster — show role for unused witnesses */}
-                {!observation.current_witness_brief && observation.witness_profiles && observation.witness_profiles.length > 0 && (
-                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.28)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
-                      Witnesses
-                    </div>
-                    {observation.witness_profiles.map((wp) => (
-                      <div key={wp.name} style={{ marginBottom: 5, opacity: wp.used ? 0.38 : 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: wp.used ? "rgba(255,255,255,0.4)" : "#fff", display: "flex", gap: 5, alignItems: "center" }}>
-                          <span style={{ fontSize: 8, background: wp.used ? "rgba(255,255,255,0.08)" : "rgba(96,165,250,0.18)", color: wp.used ? "rgba(255,255,255,0.3)" : "#93c5fd", borderRadius: 3, padding: "1px 4px" }}>{wp.type}</span>
-                          {wp.name}
-                          {wp.used && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>✓ called</span>}
-                        </div>
-                        {!wp.used && wp.role && (
-                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", lineHeight: 1.4, marginTop: 1 }}>{wp.role}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>
-                  Case Brief
-                </div>
-                {CASE_PRESETS[selectedTask] && (
-                  <>
-                    <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 5, opacity: 0.82 }}>
-                      Inspired by: {CASE_PRESETS[selectedTask].realRef}
-                    </div>
-                    <div style={{ fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,0.82)", marginBottom: 6 }}>
-                      {CASE_PRESETS[selectedTask].summary}
-                    </div>
-                    <div style={{ fontSize: 9, color: "#86efac", fontWeight: 700, marginBottom: 3 }}>
-                      {CASE_PRESETS[selectedTask].difficulty}
-                    </div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>
-                      Goal: {CASE_PRESETS[selectedTask].goal}
-                    </div>
-                  </>
-                )}
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#86efac" }}>
-                  {ui.startHint}
-                </div>
-              </>
-            )}
-          </div>
 
           {/* ── Defense card ── */}
           <div
@@ -1173,10 +1080,62 @@ export default function App() {
             overflow: "hidden",
           }}
         >
-          {/* Header */}
+          {/* ── Case brief panel — top of sidebar ── */}
+          <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+              Case Brief
+            </div>
+            {(observation?.real_case_ref || CASE_PRESETS[selectedTask]?.realRef) && (
+              <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 4, opacity: 0.85 }}>
+                {observation?.real_case_ref ?? CASE_PRESETS[selectedTask].realRef}
+              </div>
+            )}
+            <div style={{ fontSize: 10, lineHeight: 1.5, color: "rgba(255,255,255,0.78)" }}>
+              {observation?.case_summary ?? CASE_PRESETS[selectedTask]?.summary ?? ""}
+            </div>
+            {observation?.charges && observation.charges.length > 0 && (
+              <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {observation.charges.map((c) => (
+                  <span key={c} style={{ fontSize: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", borderRadius: 3, padding: "1px 5px" }}>{c}</span>
+                ))}
+              </div>
+            )}
+            {/* On stand: current witness brief */}
+            {observation?.current_witness_brief && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.07)", fontSize: 9, lineHeight: 1.45 }}>
+                <span style={{ fontWeight: 700, color: "#93c5fd" }}>On stand: </span>
+                <span style={{ color: "rgba(255,255,255,0.65)" }}>{observation.current_witness_brief}</span>
+              </div>
+            )}
+            {/* Witness roster */}
+            {observation?.witness_profiles && observation.witness_profiles.length > 0 && !observation.current_witness_brief && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Witnesses</div>
+                {observation.witness_profiles.map((wp) => (
+                  <div key={wp.name} style={{ marginBottom: 4, opacity: wp.used ? 0.35 : 1 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: wp.used ? "rgba(255,255,255,0.35)" : "#fff", display: "flex", gap: 4, alignItems: "center" }}>
+                      <span style={{ fontSize: 8, background: wp.used ? "rgba(255,255,255,0.06)" : "rgba(96,165,250,0.15)", color: wp.used ? "rgba(255,255,255,0.25)" : "#93c5fd", borderRadius: 3, padding: "1px 4px" }}>{wp.type}</span>
+                      {wp.name}
+                      {wp.used && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>✓</span>}
+                    </div>
+                    {!wp.used && wp.role && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", lineHeight: 1.35, marginTop: 1 }}>{wp.role}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {!observation && CASE_PRESETS[selectedTask] && (
+              <div style={{ marginTop: 5 }}>
+                <div style={{ fontSize: 9, color: "#86efac", fontWeight: 700 }}>{CASE_PRESETS[selectedTask].difficulty}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>Goal: {CASE_PRESETS[selectedTask].goal}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#86efac", marginTop: 6 }}>{ui.startHint}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Transcript header */}
           <div
             style={{
-              padding: "12px 14px 9px",
+              padding: "8px 14px 7px",
               borderBottom: "1px solid rgba(255,255,255,0.06)",
               flexShrink: 0,
             }}
