@@ -167,7 +167,7 @@ def state() -> Dict[str, Any]:
 
 @app.get("/grade")
 def grade() -> Dict[str, float]:
-    """Return deterministic normalized score in [0.0, 1.0]."""
+    """Return deterministic normalized score in strict open interval (0.02, 0.98)."""
     return {"score": _env.grade()}
 
 

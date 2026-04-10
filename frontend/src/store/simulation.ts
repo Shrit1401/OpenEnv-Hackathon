@@ -85,7 +85,7 @@ const chooseFallbackAction = (observation: JuryObservation | null, actions: stri
 }
 
 export const useSimulationStore = create<SimulationStore>((set, get) => ({
-  caseName: 'State v. Mercer',
+  caseName: 'State v. Cotton',
   selectedTask: 'reasonable_doubt',
   language: 'en',
   health: 'checking',

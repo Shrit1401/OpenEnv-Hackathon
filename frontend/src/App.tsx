@@ -138,7 +138,6 @@ function useSessionTimer(running: boolean) {
 export default function App() {
   const store = useSimulationStore();
   const {
-    caseName,
     selectedTask,
     language,
     health,
@@ -220,9 +219,9 @@ export default function App() {
 
   const verdictLabel = useMemo(() => {
     if (!observation) return "";
-    if (observation.conviction_pressure < 0.4)
-      return dict.verdict.established;
-    if (observation.conviction_pressure > 0.65) return dict.verdict.secured;
+    const score = observation.task_score ?? 0;
+    if (score >= 0.65) return dict.verdict.established;
+    if (score <= 0.28) return dict.verdict.secured;
     return dict.verdict.hung;
   }, [dict.verdict, observation]);
 
@@ -325,7 +324,7 @@ export default function App() {
                 marginTop: 1,
               }}
             >
-              {caseName} • {observation ? ui.running : ui.idle}
+              {CASES[selectedTask]} • {observation ? ui.running : ui.idle}
             </div>
           </div>
         </div>
@@ -551,7 +550,15 @@ export default function App() {
                     <span style={{ color: "rgba(255,255,255,0.72)" }}>{observation.current_witness_brief}</span>
                   </div>
                 )}
-                {/* Witness roster — show role + risk for unused witnesses */}
+                {/* Charges */}
+                {observation.charges && observation.charges.length > 0 && (
+                  <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 3 }}>
+                    {observation.charges.map((c) => (
+                      <span key={c} style={{ fontSize: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.22)", color: "#fca5a5", borderRadius: 3, padding: "1px 5px" }}>{c}</span>
+                    ))}
+                  </div>
+                )}
+                {/* Witness roster — show role for unused witnesses */}
                 {!observation.current_witness_brief && observation.witness_profiles && observation.witness_profiles.length > 0 && (
                   <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.28)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
@@ -1506,6 +1513,40 @@ export default function App() {
             </div>
           </div>
 
+          {/* Live task score */}
+          {observation && (
+            <div style={{ padding: "8px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  {ui.score}
+                </span>
+                <motion.span
+                  key={Math.round((observation.task_score ?? 0) * 1000)}
+                  initial={{ opacity: 0.4, y: -3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: (observation.task_score ?? 0) >= 0.5 ? "#86efac" : (observation.task_score ?? 0) >= 0.3 ? "#eab308" : "#fca5a5",
+                  }}
+                >
+                  {((observation.task_score ?? 0) * 100).toFixed(1)}
+                </motion.span>
+              </div>
+              <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.07)", marginTop: 4, overflow: "hidden" }}>
+                <motion.div
+                  animate={{ width: `${Math.round((observation.task_score ?? 0) * 100)}%` }}
+                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                  style={{
+                    height: "100%", borderRadius: 99,
+                    background: (observation.task_score ?? 0) >= 0.5 ? "#22c55e" : (observation.task_score ?? 0) >= 0.3 ? "#eab308" : "#ef4444",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div
             style={{
@@ -1652,53 +1693,58 @@ export default function App() {
                 maxWidth: 500,
               }}
             >
-              <div
-                style={{
-                  fontSize: 19,
-                  fontWeight: 800,
-                  color: "#fff",
-                  marginBottom: 4,
-                }}
-              >
-                ⚖️ {ui.finalVerdict}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginBottom: 3 }}>
+                    ⚖️ {ui.finalVerdict}
+                  </div>
+                  {observation?.real_case_ref && (
+                    <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", opacity: 0.7 }}>
+                      {observation.real_case_ref}
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  padding: "5px 12px",
+                  borderRadius: 99,
+                  background: (observation?.task_score ?? 0) >= 0.65 ? "rgba(34,197,94,0.12)" : (observation?.task_score ?? 0) <= 0.28 ? "rgba(239,68,68,0.12)" : "rgba(234,179,8,0.12)",
+                  border: `1px solid ${(observation?.task_score ?? 0) >= 0.65 ? "rgba(34,197,94,0.4)" : (observation?.task_score ?? 0) <= 0.28 ? "rgba(239,68,68,0.4)" : "rgba(234,179,8,0.4)"}`,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color: pressureTagBg,
-                  marginBottom: 20,
-                }}
-              >
-                {verdictLabel}
+                  color: (observation?.task_score ?? 0) >= 0.65 ? "#86efac" : (observation?.task_score ?? 0) <= 0.28 ? "#fca5a5" : "#fde68a",
+                  flexShrink: 0,
+                }}>
+                  {verdictLabel}
+                </div>
               </div>
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "1fr 1fr 1fr",
                   gap: 8,
                   marginBottom: 18,
                 }}
               >
                 {[
-                  [
-                    ui.score,
-                    `${Math.round((observation?.task_score ?? 0) * 100)}%`,
-                  ],
-                  [ui.pressure, `${pct}%`],
-                ].map(([label, val]) => (
+                  { label: ui.score, val: `${(((observation?.task_score ?? 0)) * 100).toFixed(1)}`, sub: "/ 100" },
+                  { label: ui.pressure, val: `${pct}%`, sub: "" },
+                  { label: "Step", val: String(observation?.step_index ?? 0), sub: "" },
+                ].map(({ label, val, sub }) => (
                   <div
                     key={label}
                     style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.07)",
                       borderRadius: 8,
-                      padding: "9px 12px",
-                      fontSize: 12,
-                      color: "#fff",
+                      padding: "8px 10px",
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.45)",
+                      textAlign: "center",
                     }}
                   >
-                    {label}: <strong>{val}</strong>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{val}<span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 2 }}>{sub}</span></div>
+                    <div style={{ marginTop: 2 }}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -1742,7 +1788,8 @@ export default function App() {
                         textAlign: "center",
                       }}
                     >
-                      {ui.jurorN.replace("4", String(i + 1))}: {voteLabel || "…"}
+                      <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 2 }}>Juror {i + 1}</div>
+                      {voteLabel || "…"}
                     </motion.div>
                   );
                 })}
