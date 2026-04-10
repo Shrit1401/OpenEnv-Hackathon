@@ -12,6 +12,27 @@ const CASES: Record<string, string> = {
   the_impossible_case: "State v. Syed",
 };
 
+const CASE_PRESETS: Record<string, { realRef: string; summary: string; difficulty: string; goal: string }> = {
+  reasonable_doubt: {
+    realRef: "People v. Ronald Cotton (NC, 1984)",
+    summary: "Ronald Cotton, 22, is accused of rape and burglary based solely on a lineup ID by Jennifer Thompson. The defense has a solid alibi and a forensics expert who disputes the physical evidence.",
+    difficulty: "Easy — jury starts near 50% conviction. Winnable with the right witness order.",
+    goal: "Drive avg conviction below 35% before closing.",
+  },
+  poisoned_panel: {
+    realRef: "United States v. Jeffrey Skilling (Enron, 2006)",
+    summary: "Jeffrey Skilling faces 28 counts of fraud after Enron's collapse destroyed 20,000 jobs. Three jurors (seats 0–2) worked for Enron — they're already convinced before opening arguments.",
+    difficulty: "Medium — hostile cluster will contaminate neutral jurors. Must challenge 2+ of seats 0–2.",
+    goal: "Break the cluster and prevent contamination of neutral jurors.",
+  },
+  the_impossible_case: {
+    realRef: "State v. Adnan Syed (Baltimore, 2000)",
+    summary: "Adnan Syed is charged with murder. Cell tower data and a witness place him at the scene. 9 of 12 jurors start near 80% convinced. Acquittal is impossible.",
+    difficulty: "Hard — full acquittal is impossible. Create 3+ holdouts for a hung jury.",
+    goal: "Maximize conviction variance. Force a split, not a sweep.",
+  },
+};
+
 const PHASES = [
   "voir_dire",
   "witness_exam",
@@ -553,13 +574,26 @@ export default function App() {
               </>
             ) : (
               <>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#fcd34d", marginBottom: 6 }}>
-                  {ui.welcomeTitle}
+                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>
+                  Case Brief
                 </div>
-                <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
-                  {ui.welcomeBody}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: "#86efac" }}>
+                {CASE_PRESETS[selectedTask] && (
+                  <>
+                    <div style={{ fontSize: 9, color: "#fcd34d", fontStyle: "italic", marginBottom: 5, opacity: 0.82 }}>
+                      Inspired by: {CASE_PRESETS[selectedTask].realRef}
+                    </div>
+                    <div style={{ fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,0.82)", marginBottom: 6 }}>
+                      {CASE_PRESETS[selectedTask].summary}
+                    </div>
+                    <div style={{ fontSize: 9, color: "#86efac", fontWeight: 700, marginBottom: 3 }}>
+                      {CASE_PRESETS[selectedTask].difficulty}
+                    </div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>
+                      Goal: {CASE_PRESETS[selectedTask].goal}
+                    </div>
+                  </>
+                )}
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#86efac" }}>
                   {ui.startHint}
                 </div>
               </>
