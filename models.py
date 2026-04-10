@@ -9,7 +9,7 @@ courtroom strategy decisions.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field
 
@@ -105,4 +105,54 @@ class JuryObservation(Observation):
     task_id: str = Field(
         default="reasonable_doubt",
         description="Which task is currently running",
+    )
+
+    # ---- casework artifacts (additive) ----
+    case_summary: str = Field(
+        default="",
+        description="1–3 sentence description of the case being tried.",
+    )
+    charges: List[str] = Field(
+        default_factory=list,
+        description="Formal charges the defendant faces.",
+    )
+    evidence: List[Dict] = Field(
+        default_factory=list,
+        description='Evidence items: [{"id","kind","strength","summary"}]. kind: forensics|eyewitness|alibi|motive.',
+    )
+    witness_profiles: List[Dict] = Field(
+        default_factory=list,
+        description='Visible witness info: [{"name","type","theme","used"}].',
+    )
+    goals: List[Dict] = Field(
+        default_factory=list,
+        description='Strategic goals with completion status: [{"id","description","priority","completed"}].',
+    )
+    pending_goals: List[Dict] = Field(
+        default_factory=list,
+        description="Subset of goals not yet completed — focus here each step.",
+    )
+    coalition_hint: Optional[Dict] = Field(
+        default=None,
+        description="poisoned_panel only: hint about the hostile juror cluster structure.",
+    )
+    cross_actions_remaining: int = Field(
+        default=2,
+        description="How many cross-examination actions remain before the phase advances.",
+    )
+    jury_patience: float = Field(
+        default=1.0,
+        description="Informational 0–1 patience meter (1.0 = fully patient).",
+    )
+    juror_profiles_visible: List[Dict] = Field(
+        default_factory=list,
+        description='Per-juror visible summary: [{"index","mood","fatigue","notes"}].',
+    )
+    reward_breakdown: Dict = Field(
+        default_factory=dict,
+        description="Informational reward state: avg_conviction, conviction_pressure_component, fatigue_penalty_component, trust_bonus_component, goal_completion_rate.",
+    )
+    phase_deadline_steps_remaining: Optional[int] = Field(
+        default=None,
+        description="the_impossible_case only: steps until the alibi witness becomes unavailable.",
     )

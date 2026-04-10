@@ -4,3 +4,28 @@ type: space
 runtime: fastapi
 app: server.app:app
 port: 7860
+
+description: >
+  An AI agent acts as a defense jury consultant across three trial scenarios.
+  The agent observes only partial jury state (mood labels, fatigue, conviction
+  pressure) and must reduce hidden conviction through sequential legal strategy
+  decisions. Tests multi-step planning under partial observability.
+
+tasks:
+  - id: reasonable_doubt
+    name: "Reasonable Doubt — State v. Mercer"
+    description: "Mostly neutral jury with two influential leader jurors. Drive avg conviction below 35%."
+    expected_score_range: [0.40, 0.85]
+    difficulty: easy
+
+  - id: poisoned_panel
+    name: "Poisoned Panel — State v. Aldridge"
+    description: "Three jurors at 90% conviction form a tight cluster that pulls neutral jurors up. Must break the bloc."
+    expected_score_range: [0.20, 0.65]
+    difficulty: medium
+
+  - id: the_impossible_case
+    name: "The Impossible Case — State v. Harmon"
+    description: "Nine jurors above 70% conviction. Acquittal is unreachable. Goal is hung jury via variance + holdouts."
+    expected_score_range: [0.10, 0.55]
+    difficulty: hard

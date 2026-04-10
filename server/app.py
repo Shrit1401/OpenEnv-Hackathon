@@ -111,6 +111,14 @@ def reset(request: ResetRequest = None) -> ResetResponse:
     if "task_id" not in kwargs and os.environ.get("TASK_ID"):
         kwargs["task_id"] = os.environ["TASK_ID"]
 
+    _VALID_TASKS = {"reasonable_doubt", "poisoned_panel", "the_impossible_case"}
+    task_id_val = kwargs.get("task_id")
+    if task_id_val and task_id_val not in _VALID_TASKS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown task_id '{task_id_val}'. Valid: {sorted(_VALID_TASKS)}",
+        )
+
     obs = _env.reset(**kwargs)
     serialized = serialize_observation(obs)
     return ResetResponse(
@@ -131,10 +139,15 @@ def step(request: StepRequest) -> StepResponse:
     all_actions = {a for actions in _PHASE_ACTIONS.values() for a in actions}
     if action.action_type not in all_actions:
         raise HTTPException(status_code=422, detail=f"Unknown action type: {action.action_type}")
+    # API rejects invalid actions with HTTP 422 before they reach the environment.
+    # Direct Python usage (e.g., benchmark.py) receives a -0.5 penalty reward instead.
     if action.action_type not in _env.valid_actions():
         raise HTTPException(
             status_code=422,
-            detail=f"Action '{action.action_type}' not allowed in phase '{_env._phase}'",
+            detail=(
+                f"Action '{action.action_type}' not allowed in phase '{_env.phase}'. "
+                f"Valid actions: {_env.valid_actions()}"
+            ),
         )
 
     obs = _env.step(action)
@@ -170,7 +183,7 @@ def schema() -> Dict[str, Any]:
 @app.get("/valid_actions")
 def valid_actions() -> Dict[str, Any]:
     """Return actions valid in the current phase."""
-    phase = _env._phase
+    phase = _env.phase
     return {"phase": phase, "valid_actions": _env.valid_actions()}
 
 

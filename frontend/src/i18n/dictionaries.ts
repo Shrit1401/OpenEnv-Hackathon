@@ -30,6 +30,32 @@ type Dictionary = {
     judgeBench: string
     finalVerdict: string
     score: string
+    // New fields
+    startHint: string
+    close: string
+    welcomeTitle: string
+    welcomeBody: string
+    activeGoals: string
+    rewardBreakdown: string
+    convictionComponent: string
+    fatigueComponent: string
+    trustComponent: string
+    goalCompletion: string
+    juryPatience: string
+    hostileBloc: string
+    hostileBlocJurors: string
+    hostileBlocSeats: string
+    crossActionsLeft: string
+    crossActionsLeftPlural: string
+    deadlineStepsLeft: string
+    guilty: string
+    notGuilty: string
+    defenseAttorney: string
+    prosecutionAttorney: string
+    defense: string
+    prosecution: string
+    judge: string
+    jurorN: string
   }
   phases: Record<string, string>
   actions: Record<string, string>
@@ -80,6 +106,31 @@ export const dictionaries: Record<AppLanguage, Dictionary> = {
       judgeBench: 'Judge Bench',
       finalVerdict: 'Final Verdict',
       score: 'Task Score',
+      startHint: 'To start, press Reset first, then Play.',
+      close: 'Close',
+      welcomeTitle: 'Welcome to Jury Consultant',
+      welcomeBody: 'This simulator helps you test defense strategy under uncertainty. Reduce conviction pressure and improve final score through phase-aware actions.',
+      activeGoals: 'Active Goals',
+      rewardBreakdown: 'Reward Breakdown',
+      convictionComponent: 'Conviction',
+      fatigueComponent: 'Fatigue',
+      trustComponent: 'Trust',
+      goalCompletion: 'Goals',
+      juryPatience: 'Jury Patience',
+      hostileBloc: 'Hostile Bloc',
+      hostileBlocJurors: 'jurors',
+      hostileBlocSeats: 'seats',
+      crossActionsLeft: 'action left',
+      crossActionsLeftPlural: 'actions left',
+      deadlineStepsLeft: 'steps left',
+      guilty: 'Guilty',
+      notGuilty: 'Not Guilty',
+      defenseAttorney: 'Atty. Michael Carter',
+      prosecutionAttorney: 'Atty. Olivia Reed',
+      defense: 'Defense',
+      prosecution: 'Prosecution',
+      judge: 'Judge',
+      jurorN: 'Juror #4',
     },
     phases: {
       voir_dire: 'Voir Dire',
@@ -151,6 +202,31 @@ export const dictionaries: Record<AppLanguage, Dictionary> = {
       judgeBench: 'न्यायाधीश मंच',
       finalVerdict: 'अंतिम निर्णय',
       score: 'टास्क स्कोर',
+      startHint: 'शुरू करने के लिए पहले Reset दबाएं, फिर Play दबाएं।',
+      close: 'बंद करें',
+      welcomeTitle: 'जूरी कंसल्टेंट में स्वागत है',
+      welcomeBody: 'यह सिम्युलेटर अनिश्चित परिस्थितियों में रक्षा रणनीति की जांच करता है। चरण के अनुसार सही कदम लेकर दोषसिद्धि दबाव कम करें और अंतिम स्कोर सुधारें।',
+      activeGoals: 'सक्रिय लक्ष्य',
+      rewardBreakdown: 'रिवॉर्ड विवरण',
+      convictionComponent: 'दोषसिद्धि',
+      fatigueComponent: 'थकान',
+      trustComponent: 'विश्वास',
+      goalCompletion: 'लक्ष्य',
+      juryPatience: 'जूरी धैर्य',
+      hostileBloc: 'विरोधी गुट',
+      hostileBlocJurors: 'जूरर',
+      hostileBlocSeats: 'सीटें',
+      crossActionsLeft: 'क्रिया शेष',
+      crossActionsLeftPlural: 'क्रियाएं शेष',
+      deadlineStepsLeft: 'चरण शेष',
+      guilty: 'दोषी',
+      notGuilty: 'निर्दोष',
+      defenseAttorney: 'वकील माइकल कार्टर',
+      prosecutionAttorney: 'वकील ओलिविया रीड',
+      defense: 'रक्षा पक्ष',
+      prosecution: 'अभियोजन',
+      judge: 'न्यायाधीश',
+      jurorN: 'जूरर #4',
     },
     phases: {
       voir_dire: 'जूरी चयन',
@@ -222,6 +298,31 @@ export const dictionaries: Record<AppLanguage, Dictionary> = {
       judgeBench: 'ನ್ಯಾಯಾಧೀಶ ವೇದಿ',
       finalVerdict: 'ಅಂತಿಮ ತೀರ್ಪು',
       score: 'ಟಾಸ್ಕ್ ಸ್ಕೋರ್',
+      startHint: 'ಆರಂಭಿಸಲು ಮೊದಲು Reset ಒತ್ತಿ, ನಂತರ Play ಒತ್ತಿ.',
+      close: 'ಮುಚ್ಚು',
+      welcomeTitle: 'ಜೂರಿ ಕನ್ಸಲ್ಟೆಂಟ್‌ಗೆ ಸ್ವಾಗತ',
+      welcomeBody: 'ಈ ಸಿಮ್ಯುಲೇಟರ್ ಅನಿಶ್ಚಿತ ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ರಕ್ಷಣಾ ತಂತ್ರವನ್ನು ಪರೀಕ್ಷಿಸಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ಹಂತಕ್ಕೆ ತಕ್ಕ ಕ್ರಮಗಳಿಂದ ದೋಷದ ಒತ್ತಡ ಕಡಿಮೆ ಮಾಡಿ ಮತ್ತು ಅಂತಿಮ ಸ್ಕೋರ್ ಹೆಚ್ಚಿಸಿ.',
+      activeGoals: 'ಸಕ್ರಿಯ ಗುರಿಗಳು',
+      rewardBreakdown: 'ಬಹುಮಾನ ವಿವರ',
+      convictionComponent: 'ದೋಷಾರೋಪ',
+      fatigueComponent: 'ಆಯಾಸ',
+      trustComponent: 'ನಂಬಿಕೆ',
+      goalCompletion: 'ಗುರಿಗಳು',
+      juryPatience: 'ಜೂರಿ ತಾಳ್ಮೆ',
+      hostileBloc: 'ವಿರೋಧಿ ಗುಂಪು',
+      hostileBlocJurors: 'ಜೂರರ್‌ಗಳು',
+      hostileBlocSeats: 'ಸೀಟುಗಳು',
+      crossActionsLeft: 'ಕ್ರಿಯೆ ಉಳಿದಿದೆ',
+      crossActionsLeftPlural: 'ಕ್ರಿಯೆಗಳು ಉಳಿದಿವೆ',
+      deadlineStepsLeft: 'ಹಂತಗಳು ಉಳಿದಿವೆ',
+      guilty: 'ದೋಷಿ',
+      notGuilty: 'ದೋಷಿಯಲ್ಲ',
+      defenseAttorney: 'ವಕೀಲ ಮೈಕಲ್ ಕಾರ್ಟರ್',
+      prosecutionAttorney: 'ವಕೀಲ ಒಲಿವಿಯಾ ರೀಡ್',
+      defense: 'ರಕ್ಷಣಾ ಪಕ್ಷ',
+      prosecution: 'ಅಭಿಯೋಗ',
+      judge: 'ನ್ಯಾಯಾಧೀಶ',
+      jurorN: 'ಜೂರರ್ #4',
     },
     phases: {
       voir_dire: 'ಜೂರಿ ಆಯ್ಕೆ',
@@ -293,6 +394,31 @@ export const dictionaries: Record<AppLanguage, Dictionary> = {
       judgeBench: 'న్యాయమూర్తి బెంచ్',
       finalVerdict: 'తుది తీర్పు',
       score: 'టాస్క్ స్కోర్',
+      startHint: 'ప్రారంభించడానికి ముందుగా Reset నొక్కి, తర్వాత Play నొక్కండి.',
+      close: 'మూసివేయి',
+      welcomeTitle: 'జ్యూరీ కన్సల్టెంట్‌కు స్వాగతం',
+      welcomeBody: 'ఈ సిమ్యులేటర్ అనిశ్చిత పరిస్థితుల్లో రక్షణ వ్యూహాన్ని పరీక్షిస్తుంది. దశకు సరిపోయే చర్యలతో దోష ఒత్తిడిని తగ్గించి తుది స్కోర్‌ను మెరుగుపరచండి.',
+      activeGoals: 'చురుకైన లక్ష్యాలు',
+      rewardBreakdown: 'బహుమతి వివరాలు',
+      convictionComponent: 'దోషం',
+      fatigueComponent: 'అలసట',
+      trustComponent: 'నమ్మకం',
+      goalCompletion: 'లక్ష్యాలు',
+      juryPatience: 'జ్యూరీ సహనం',
+      hostileBloc: 'వ్యతిరేక వర్గం',
+      hostileBlocJurors: 'జ్యూరర్లు',
+      hostileBlocSeats: 'సీట్లు',
+      crossActionsLeft: 'చర్య మిగిలింది',
+      crossActionsLeftPlural: 'చర్యలు మిగిలాయి',
+      deadlineStepsLeft: 'దశలు మిగిలాయి',
+      guilty: 'దోషి',
+      notGuilty: 'దోషి కాదు',
+      defenseAttorney: 'అడ్వొకేట్ మైకేల్ కార్టర్',
+      prosecutionAttorney: 'అడ్వొకేట్ ఒలీవియా రీడ్',
+      defense: 'రక్షణ',
+      prosecution: 'అభియోగం',
+      judge: 'న్యాయమూర్తి',
+      jurorN: 'జ్యూరర్ #4',
     },
     phases: {
       voir_dire: 'జ్యూరీ ఎంపిక',

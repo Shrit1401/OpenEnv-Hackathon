@@ -65,38 +65,6 @@ const TASK_DIFFICULTY: Record<AppLanguage, Record<string, string>> = {
   },
 };
 
-const ABOUT_CARD: Record<AppLanguage, { title: string; body: string }> = {
-  en: {
-    title: "Welcome to Jury Consultant",
-    body: "This simulator helps you test defense strategy under uncertainty. Reduce conviction pressure and improve final score through phase-aware actions.",
-  },
-  hi: {
-    title: "जूरी कंसल्टेंट में स्वागत है",
-    body: "यह सिम्युलेटर अनिश्चित परिस्थितियों में रक्षा रणनीति की जांच करता है। चरण के अनुसार सही कदम लेकर दोषसिद्धि दबाव कम करें और अंतिम स्कोर सुधारें।",
-  },
-  kn: {
-    title: "ಜೂರಿ ಕನ್ಸಲ್ಟೆಂಟ್‌ಗೆ ಸ್ವಾಗತ",
-    body: "ಈ ಸಿಮ್ಯುಲೇಟರ್ ಅನಿಶ್ಚಿತ ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ರಕ್ಷಣಾ ತಂತ್ರವನ್ನು ಪರೀಕ್ಷಿಸಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ಹಂತಕ್ಕೆ ತಕ್ಕ ಕ್ರಮಗಳಿಂದ ದೋಷದ ಒತ್ತಡ ಕಡಿಮೆ ಮಾಡಿ ಮತ್ತು ಅಂತಿಮ ಸ್ಕೋರ್ ಹೆಚ್ಚಿಸಿ.",
-  },
-  te: {
-    title: "జ్యూరీ కన్సల్టెంట్‌కు స్వాగతం",
-    body: "ఈ సిమ్యులేటర్ అనిశ్చిత పరిస్థితుల్లో రక్షణ వ్యూహాన్ని పరీక్షిస్తుంది. దశకు సరిపోయే చర్యలతో దోష ఒత్తిడిని తగ్గించి తుది స్కోర్‌ను మెరుగుపరచండి.",
-  },
-};
-
-const START_HINT: Record<AppLanguage, string> = {
-  en: "To start, press Reset first, then Play.",
-  hi: "शुरू करने के लिए पहले Reset दबाएं, फिर Play दबाएं।",
-  kn: "ಆರಂಭಿಸಲು ಮೊದಲು Reset ಒತ್ತಿ, ನಂತರ Play ಒತ್ತಿ.",
-  te: "ప్రారంభించడానికి ముందుగా Reset నొక్కి, తర్వాత Play నొక్కండి.",
-};
-
-const CLOSE_LABEL: Record<AppLanguage, string> = {
-  en: "Close",
-  hi: "बंद करें",
-  kn: "ಮುಚ್ಚು",
-  te: "మూసివేయి",
-};
 
 const MOOD_BG: Record<string, string> = {
   receptive: "#15803d",
@@ -122,13 +90,15 @@ const LANG_ICONS: Record<AppLanguage, string> = {
 const ROW_BACK = [0, 1, 2, 3, 4];
 const ROW_FRONT = [5, 6, 7, 8, 9, 10, 11];
 
-const SPEAKER_CYCLE = ["Judge", "Defense", "Prosecution", "Juror #4", "Judge"];
-const SPEAKER_COLOR: Record<string, string> = {
-  Judge: "#eab308",
-  Defense: "#60a5fa",
-  Prosecution: "#f87171",
-  "Juror #4": "#a78bfa",
+// Speaker labels are resolved at render time via ui.* — these keys match dict.ui fields
+const SPEAKER_COLOR_MAP: Record<string, string> = {
+  judge: "#eab308",
+  defense: "#60a5fa",
+  prosecution: "#f87171",
+  jurorN: "#a78bfa",
 };
+// Cycle uses keys into ui.* so they render translated
+const SPEAKER_CYCLE_KEYS = ["judge", "defense", "prosecution", "jurorN", "judge"] as const;
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -171,7 +141,6 @@ export default function App() {
 
   const dict = dictionary(language);
   const ui = dict.ui;
-  const about = ABOUT_CARD[language];
   const localizedCases = TASK_LABELS[language];
   const localizedDifficulty = TASK_DIFFICULTY[language];
   const sessionTime = useSessionTimer(isAutoplay || isRunning);
@@ -222,12 +191,9 @@ export default function App() {
 
   const revealedVotes = useMemo(() => {
     if (!observation) return [];
+    // Store raw mood key ("hostile" / other) so render can translate
     return observation.juror_moods.map((mood, i) =>
-      i > verdictRevealIndex
-        ? ""
-        : mood === "hostile"
-          ? "Guilty"
-          : "Not Guilty",
+      i > verdictRevealIndex ? "" : mood,
     );
   }, [observation, verdictRevealIndex]);
 
@@ -264,7 +230,7 @@ export default function App() {
         const ap = base.getHours() >= 12 ? "PM" : "AM";
         return {
           ...entry,
-          speaker: SPEAKER_CYCLE[i % SPEAKER_CYCLE.length],
+          speakerKey: SPEAKER_CYCLE_KEYS[i % SPEAKER_CYCLE_KEYS.length],
           time: `${hh}:${mm}:${ss} ${ap}`,
         };
       }),
@@ -528,10 +494,10 @@ export default function App() {
             }}
           >
             <div style={{ fontSize: 14, fontWeight: 800, color: "#fcd34d", marginBottom: 6 }}>
-              {about.title}
+              {ui.welcomeTitle}
             </div>
             <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
-              {about.body}
+              {ui.welcomeBody}
             </div>
             <div
               style={{
@@ -541,7 +507,7 @@ export default function App() {
                 color: "#86efac",
               }}
             >
-              {START_HINT[language]}
+              {ui.startHint}
             </div>
           </div>
 
@@ -582,7 +548,7 @@ export default function App() {
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Atty. Michael Carter
+              {ui.defenseAttorney}
             </div>
             <div
               style={{
@@ -591,7 +557,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              Defense
+              {ui.defense}
             </div>
             {observation && (
               <div
@@ -652,7 +618,7 @@ export default function App() {
               </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-              Atty. Olivia Reed
+              {ui.prosecutionAttorney}
             </div>
             <div
               style={{
@@ -661,7 +627,7 @@ export default function App() {
                 marginTop: 2,
               }}
             >
-              Prosecution
+              {ui.prosecution}
             </div>
           </div>
 
@@ -776,6 +742,102 @@ export default function App() {
             </div>
           </div>
 
+          {/* ── Coalition hint banner — amber warning for poisoned_panel ── */}
+          <AnimatePresence>
+            {observation?.coalition_hint && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                transition={{ type: "spring", duration: 0.3, bounce: 0.1 }}
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "14%",
+                  translateX: "-50%",
+                  zIndex: 11,
+                  background: "rgba(180,83,9,0.82)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(251,191,36,0.45)",
+                  borderRadius: 8,
+                  padding: "5px 14px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#fef3c7",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ⚠ {ui.hostileBloc}: {observation.coalition_hint.size} {ui.hostileBlocJurors} ({ui.hostileBlocSeats}{" "}
+                {observation.coalition_hint.seats.join(", ")}) —{" "}
+                {observation.coalition_hint.influence_style}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Cross actions / deadline badges ── */}
+          {observation && (
+            <div
+              style={{
+                position: "absolute",
+                right: 14,
+                top: "14%",
+                zIndex: 11,
+                display: "flex",
+                flexDirection: "column",
+                gap: 5,
+                alignItems: "flex-end",
+              }}
+            >
+              <AnimatePresence>
+                {observation.phase === "cross_examination" &&
+                  typeof observation.cross_actions_remaining === "number" && (
+                    <motion.div
+                      key="cross-badge"
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 8 }}
+                      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                      style={{
+                        background: "rgba(0,0,0,0.68)",
+                        border: "1px solid rgba(96,165,250,0.4)",
+                        borderRadius: 6,
+                        padding: "4px 10px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "#93c5fd",
+                      }}
+                    >
+                      Cross: {observation.cross_actions_remaining}{" "}
+                      {observation.cross_actions_remaining === 1
+                        ? ui.crossActionsLeft
+                        : ui.crossActionsLeftPlural}
+                    </motion.div>
+                  )}
+                {typeof observation.phase_deadline_steps_remaining === "number" &&
+                  observation.phase_deadline_steps_remaining < 6 && (
+                    <motion.div
+                      key="deadline-badge"
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 8 }}
+                      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                      style={{
+                        background: "rgba(127,29,29,0.82)",
+                        border: "1px solid rgba(239,68,68,0.5)",
+                        borderRadius: 6,
+                        padding: "4px 10px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "#fca5a5",
+                      }}
+                    >
+                      ⏰ {observation.phase_deadline_steps_remaining} {ui.deadlineStepsLeft}
+                    </motion.div>
+                  )}
+              </AnimatePresence>
+            </div>
+          )}
+
           {/* ── Jury pills — overlaid on actual jury area in the image ──
               bg.png: jury sits at ~57–80% height. With 58px topbar and 72px bottom rail,
               the jury area center is roughly at 60–75% of the stage height.
@@ -800,9 +862,9 @@ export default function App() {
                   return (
                     <motion.span
                       key={i}
-                      initial={{ opacity: 0, y: 4 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.035 }}
+                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04 }}
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
@@ -838,9 +900,9 @@ export default function App() {
                   return (
                     <motion.span
                       key={i}
-                      initial={{ opacity: 0, y: 4 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.035 }}
+                      transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04 }}
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
@@ -1078,7 +1140,7 @@ export default function App() {
             <AnimatePresence initial={false}>
               {formattedTranscript.map((entry) => {
                 const sc =
-                  SPEAKER_COLOR[entry.speaker] ?? "rgba(255,255,255,0.32)";
+                  SPEAKER_COLOR_MAP[entry.speakerKey] ?? "rgba(255,255,255,0.32)";
                 return (
                   <motion.div
                     key={entry.id}
@@ -1105,7 +1167,7 @@ export default function App() {
                       <span
                         style={{ color: sc, fontWeight: 700, fontSize: 10 }}
                       >
-                        {entry.speaker}:
+                        {ui[entry.speakerKey]}:
                       </span>
                     </div>
                     <div
@@ -1124,6 +1186,197 @@ export default function App() {
               })}
             </AnimatePresence>
           </div>
+
+          {/* ── Pending Goals panel ── */}
+          {observation?.pending_goals && observation.pending_goals.length > 0 && (
+            <div
+              style={{
+                padding: "8px 10px",
+                borderTop: "1px solid rgba(255,255,255,0.05)",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  color: "rgba(255,255,255,0.3)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  marginBottom: 5,
+                }}
+              >
+                {ui.activeGoals}
+              </div>
+              {observation.pending_goals.slice(0, 3).map((g, idx) => (
+                <motion.div
+                  key={g.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1], delay: idx * 0.04 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    marginBottom: 3,
+                    fontSize: 10,
+                    color: "rgba(255,255,255,0.72)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      width: 13,
+                      height: 13,
+                      borderRadius: 3,
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 8,
+                      marginTop: 1,
+                    }}
+                  >
+                    {g.completed ? "✓" : ""}
+                  </span>
+                  <span>{g.description}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Jury Patience meter ── */}
+          {typeof observation?.jury_patience === "number" && (
+            <div
+              style={{
+                padding: "8px 10px",
+                borderTop: "1px solid rgba(255,255,255,0.05)",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 5,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: "rgba(255,255,255,0.3)",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {ui.juryPatience}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color:
+                      observation.jury_patience > 0.6
+                        ? "#22c55e"
+                        : observation.jury_patience > 0.3
+                        ? "#eab308"
+                        : "#ef4444",
+                  }}
+                >
+                  {Math.round(observation.jury_patience * 100)}%
+                </div>
+              </div>
+              <div
+                style={{
+                  height: 4,
+                  borderRadius: 99,
+                  background: "rgba(255,255,255,0.08)",
+                  overflow: "hidden",
+                }}
+              >
+                <motion.div
+                  animate={{ width: `${Math.round(observation.jury_patience * 100)}%` }}
+                  transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+                  style={{
+                    height: "100%",
+                    borderRadius: 99,
+                    background:
+                      observation.jury_patience > 0.6
+                        ? "#22c55e"
+                        : observation.jury_patience > 0.3
+                        ? "#eab308"
+                        : "#ef4444",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Reward Breakdown panel ── */}
+          {observation?.reward_breakdown &&
+            Object.keys(observation.reward_breakdown).length > 0 && (
+              <div
+                style={{
+                  padding: "8px 10px",
+                  borderTop: "1px solid rgba(255,255,255,0.05)",
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: "rgba(255,255,255,0.3)",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    marginBottom: 5,
+                  }}
+                >
+                  {ui.rewardBreakdown}
+                </div>
+                {[
+                  {
+                    label: ui.convictionComponent,
+                    val: observation.reward_breakdown.conviction_pressure_component,
+                    color: "#86efac",
+                  },
+                  {
+                    label: ui.fatigueComponent,
+                    val: observation.reward_breakdown.fatigue_penalty_component,
+                    color: "#fca5a5",
+                  },
+                  {
+                    label: ui.trustComponent,
+                    val: observation.reward_breakdown.trust_bonus_component,
+                    color: "#93c5fd",
+                  },
+                  ...(typeof observation.reward_breakdown.goal_completion_rate === "number"
+                    ? [{
+                        label: ui.goalCompletion,
+                        val: observation.reward_breakdown.goal_completion_rate,
+                        color: "#fde68a",
+                      }]
+                    : []),
+                ].map(({ label, val, color }) => (
+                  <div
+                    key={label}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      marginBottom: 2,
+                      color: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <span>{label}</span>
+                    <span style={{ color, fontWeight: 700 }}>
+                      {val >= 0 ? "+" : ""}
+                      {val.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
           {/* Auto-transcribing */}
           <div
@@ -1175,7 +1428,9 @@ export default function App() {
               {ui.lastAction}
             </div>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <button
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.12 }}
                 onClick={() => setAutoplay(!isAutoplay)}
                 disabled={isRunning && !isAutoplay}
                 style={{
@@ -1199,8 +1454,10 @@ export default function App() {
                 }}
               >
                 {isAutoplay ? `⏸ ${ui.pause}` : `▶ ${ui.autoplay}`}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.12 }}
                 onClick={() => setVerdictOpen(true)}
                 style={{
                   flex: 1,
@@ -1219,10 +1476,12 @@ export default function App() {
                 }}
               >
                 ⚖️ {ui.revealVerdict}
-              </button>
+              </motion.button>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.12 }}
                 onClick={() => void reset()}
                 disabled={isRunning}
                 style={{
@@ -1237,8 +1496,10 @@ export default function App() {
                 }}
               >
                 ↺ {ui.reset}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.12 }}
                 onClick={() => void step()}
                 disabled={isRunning || !observation}
                 style={{
@@ -1253,7 +1514,7 @@ export default function App() {
                 }}
               >
                 ⏭ {ui.step}
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
@@ -1280,9 +1541,10 @@ export default function App() {
             }}
           >
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.97 }}
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
               style={{
                 background: "#0d0d0d",
                 border: "1px solid rgba(234,179,8,0.16)",
@@ -1352,12 +1614,18 @@ export default function App() {
               >
                 {(observation?.juror_moods ?? []).map((_, i) => {
                   const vote = revealedVotes[i];
-                  const guilty = vote === "Guilty";
+                  const guilty = vote === "hostile";
+                  const voteLabel = vote
+                    ? guilty
+                      ? ui.guilty
+                      : ui.notGuilty
+                    : "";
                   return (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, scale: 0.85 }}
+                      initial={{ opacity: 0, scale: 0.88 }}
                       animate={{ opacity: vote ? 1 : 0.2, scale: 1 }}
+                      transition={{ type: "spring", duration: 0.3, bounce: 0.1, delay: i * 0.05 }}
                       style={{
                         background: vote
                           ? guilty
@@ -1376,12 +1644,14 @@ export default function App() {
                         textAlign: "center",
                       }}
                     >
-                      Juror {i + 1}: {vote || "…"}
+                      {ui.jurorN.replace("4", String(i + 1))}: {voteLabel || "…"}
                     </motion.div>
                   );
                 })}
               </div>
-              <button
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.12 }}
                 onClick={() => setVerdictOpen(false)}
                 style={{
                   width: "100%",
@@ -1395,8 +1665,8 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                {CLOSE_LABEL[language]}
-              </button>
+                {ui.close}
+              </motion.button>
             </motion.div>
           </motion.div>
         )}

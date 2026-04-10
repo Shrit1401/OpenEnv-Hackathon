@@ -1,3 +1,45 @@
+export type EvidenceItem = {
+  id: string;
+  kind: string;
+  strength: number;
+  summary: string;
+};
+
+export type WitnessProfile = {
+  name: string;
+  type: string;
+  theme: string;
+  used: boolean;
+};
+
+export type Goal = {
+  id: string;
+  description: string;
+  priority: number;
+  completed: boolean;
+};
+
+export type CoalitionHint = {
+  size: number;
+  seats: number[];
+  influence_style: string;
+};
+
+export type JurorProfileVisible = {
+  index: number;
+  mood: string;
+  fatigue: string;
+  notes: string;
+};
+
+export type RewardBreakdown = {
+  avg_conviction: number;
+  conviction_pressure_component: number;
+  fatigue_penalty_component: number;
+  trust_bonus_component: number;
+  goal_completion_rate?: number;
+};
+
 export type JuryObservation = {
   phase: string;
   step_index: number;
@@ -13,6 +55,19 @@ export type JuryObservation = {
   task_id: string;
   done?: boolean;
   reward?: number;
+  // Round-2 casework artifact fields (optional for backwards compat)
+  case_summary?: string;
+  charges?: string[];
+  evidence?: EvidenceItem[];
+  witness_profiles?: WitnessProfile[];
+  goals?: Goal[];
+  pending_goals?: Goal[];
+  coalition_hint?: CoalitionHint | null;
+  cross_actions_remaining?: number;
+  jury_patience?: number;
+  juror_profiles_visible?: JurorProfileVisible[];
+  reward_breakdown?: RewardBreakdown;
+  phase_deadline_steps_remaining?: number | null;
 };
 
 export type StepResponse = {
